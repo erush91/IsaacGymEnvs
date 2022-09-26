@@ -35,7 +35,7 @@ env:
     restitution: 0.0
 
   asset:
-    assetFileName: "mjcf/nv_ant.xml"
+    assetFileName: "mjcf/nv_hexapod.xml"
 
   # set to True if you use camera sensors in the environment
   enableCameraSensors: False
