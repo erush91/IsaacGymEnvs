@@ -38,7 +38,7 @@ from isaacgymenvs.utils.torch_jit_utils import *
 from isaacgymenvs.tasks.base.vec_task import VecTask
 
 
-class Ant(VecTask):
+class Hexapod(VecTask):
 
     def __init__(self, cfg, rl_device, sim_device, graphics_device_id, headless, virtual_screen_capture, force_render):
 
@@ -64,8 +64,8 @@ class Ant(VecTask):
         self.plane_dynamic_friction = self.cfg["env"]["plane"]["dynamicFriction"]
         self.plane_restitution = self.cfg["env"]["plane"]["restitution"]
 
-        self.cfg["env"]["numObservations"] = 60
-        self.cfg["env"]["numActions"] = 8
+        self.cfg["env"]["numObservations"] = 84
+        self.cfg["env"]["numActions"] = 12
 
         super().__init__(config=self.cfg, rl_device=rl_device, sim_device=sim_device, graphics_device_id=graphics_device_id, headless=headless, virtual_screen_capture=virtual_screen_capture, force_render=force_render)
 
@@ -79,7 +79,7 @@ class Ant(VecTask):
         dof_state_tensor = self.gym.acquire_dof_state_tensor(self.sim)
         sensor_tensor = self.gym.acquire_force_sensor_tensor(self.sim)
 
-        sensors_per_env = 4
+        sensors_per_env = 6
         self.vec_sensor_tensor = gymtorch.wrap_tensor(sensor_tensor).view(self.num_envs, sensors_per_env * 6)
 
         self.gym.refresh_dof_state_tensor(self.sim)
@@ -344,15 +344,17 @@ def compute_ant_reward(
 
     # energy penalty for movement
     actions_cost = torch.sum(actions ** 2, dim=-1)
-    electricity_cost = torch.sum(torch.abs(actions * obs_buf[:, 20:28]), dim=-1)
-    dof_at_limit_cost = torch.sum(obs_buf[:, 12:20] > 0.99, dim=-1)
+    electricity_cost = torch.sum(torch.abs(actions * obs_buf[:, 24:36]), dim=-1)
+    dof_at_limit_cost = torch.sum(obs_buf[:, 12:24] > 0.99, dim=-1)
 
     # reward for duration of staying alive
     alive_reward = torch.ones_like(potentials) * 0.5
     progress_reward = potentials - prev_potentials
 
-    total_reward = progress_reward + alive_reward - \
+    total_reward = progress_reward + alive_reward + heading_reward - \
         actions_cost_scale * actions_cost - energy_cost_scale * electricity_cost - dof_at_limit_cost * joints_at_limit_cost_scale
+    # total_reward = progress_reward + alive_reward + up_reward + heading_reward - \
+        # actions_cost_scale * actions_cost - energy_cost_scale * electricity_cost - dof_at_limit_cost * joints_at_limit_cost_scale
 
     # adjust reward for fallen agents
     total_reward = torch.where(obs_buf[:, 0] < termination_height, torch.ones_like(total_reward) * death_cost, total_reward)
@@ -395,7 +397,7 @@ def compute_ant_observations(obs_buf, root_states, targets, potentials,
     obs = torch.cat((torso_position[:, up_axis_idx].view(-1, 1), vel_loc, angvel_loc,
                      yaw.unsqueeze(-1), roll.unsqueeze(-1), angle_to_target.unsqueeze(-1),
                      up_proj.unsqueeze(-1), heading_proj.unsqueeze(-1), dof_pos_scaled,
-                     dof_vel * dof_vel_scale, sensor_force_torques.view(-1, 24) * contact_force_scale,
+                     dof_vel * dof_vel_scale, sensor_force_torques.view(-1, 36) * contact_force_scale,
                      actions), dim=-1)
 
     return obs, potentials, prev_potentials_new, up_vec, heading_vec
