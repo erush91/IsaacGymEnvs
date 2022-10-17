@@ -1,5 +1,5 @@
 # used to create the object
-name: Ant
+name: Quadruped
 
 physics_engine: ${..physics_engine}
 
@@ -35,7 +35,7 @@ env:
     restitution: 0.0
 
   asset:
-    assetFileName: "mjcf/nv_ant.xml"
+    assetFileName: "mjcf/quadruped.xml"
 
   # set to True if you use camera sensors in the environment
   enableCameraSensors: False
@@ -75,7 +75,7 @@ task:
       operation: "additive"
       distribution: "gaussian"
     actor_params:
-      ant:
+      quadruped:
         color: True
         rigid_body_properties:
           mass: 
