@@ -21,11 +21,11 @@ env:
   upWeight: 0.1
 
   # cost parameters
-  actionsCost: 0.005
-  energyCost: 0.05
+  actionsCost: 0.0033333333333 # 0.005
+  energyCost: 0.033333333333 # 0.05
   dofVelocityScale: 0.2
   contactForceScale: 0.1
-  jointsAtLimitCost: 0.1
+  jointsAtLimitCost: 0.0666666666667 # 0.1
   deathCost: -2.0
   terminationHeight: 0.31
 
@@ -75,7 +75,7 @@ task:
       operation: "additive"
       distribution: "gaussian"
     actor_params:
-      ant:
+      hexapod:
         color: True
         rigid_body_properties:
           mass: 
