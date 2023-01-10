@@ -46,6 +46,8 @@ class Hexapod(VecTask):
 
         self.max_episode_length = self.cfg["env"]["episodeLength"]
 
+        # self.perturbation_params = self.cfg["task"]["perturbation_params"]
+        self.perturb = self.cfg["task"]["perturb"]
         self.randomization_params = self.cfg["task"]["randomization_params"]
         self.randomize = self.cfg["task"]["randomize"]
         self.dof_vel_scale = self.cfg["env"]["dofVelocityScale"]
@@ -277,6 +279,9 @@ class Hexapod(VecTask):
         forces = self.actions * self.joint_gears * self.power_scale
         force_tensor = gymtorch.unwrap_tensor(forces)
         self.gym.set_dof_actuation_force_tensor(self.sim, force_tensor)
+
+        if self.perturb:
+            self.apply_perturbations()
 
     def post_physics_step(self):
         self.progress_buf += 1
