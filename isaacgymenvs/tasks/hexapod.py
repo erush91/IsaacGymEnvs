@@ -32,6 +32,7 @@ import torch
 
 from isaacgym import gymtorch
 from isaacgym import gymapi
+from isaacgym import gymutil
 from isaacgym.gymtorch import *
 
 from isaacgymenvs.utils.torch_jit_utils import *
@@ -46,6 +47,7 @@ class Hexapod(VecTask):
 
         self.max_episode_length = self.cfg["env"]["episodeLength"]
 
+        self.camera_follow = self.cfg["env"].get("cameraFollow", False)
         # self.perturbation_params = self.cfg["task"]["perturbation_params"]
         self.perturb = self.cfg["task"]["perturb"]
         self.randomization_params = self.cfg["task"]["randomization_params"]
@@ -68,13 +70,10 @@ class Hexapod(VecTask):
 
         self.cfg["env"]["numObservations"] = 84
         self.cfg["env"]["numActions"] = 12
+        
+
 
         super().__init__(config=self.cfg, rl_device=rl_device, sim_device=sim_device, graphics_device_id=graphics_device_id, headless=headless, virtual_screen_capture=virtual_screen_capture, force_render=force_render)
-
-        if self.viewer != None:
-            cam_pos = gymapi.Vec3(50.0, 25.0, 2.4)
-            cam_target = gymapi.Vec3(45.0, 25.0, 0.0)
-            self.gym.viewer_camera_look_at(self.viewer, None, cam_pos, cam_target)
 
         # get gym GPU state tensors
         actor_root_state = self.gym.acquire_actor_root_state_tensor(self.sim)
@@ -114,6 +113,13 @@ class Hexapod(VecTask):
         self.dt = self.cfg["sim"]["dt"]
         self.potentials = to_torch([-1000./self.dt], device=self.device).repeat(self.num_envs)
         self.prev_potentials = self.potentials.clone()
+
+        if self.viewer != None:
+            # cam_pos = gymapi.Vec3(50.0, 25.0, 2.4)
+            # cam_target = gymapi.Vec3(45.0, 25.0, 0.0)
+            # self.gym.viewer_camera_look_at(self.viewer, None, cam_pos, cam_target)
+            
+            self._init_camera()
 
     def create_sim(self):
         self.up_axis_idx = 2 # index of up axis: Y=1, Z=2
@@ -281,7 +287,26 @@ class Hexapod(VecTask):
         self.gym.set_dof_actuation_force_tensor(self.sim, force_tensor)
 
         if self.perturb:
-            self.apply_perturbations()
+            f_perturb = self.apply_perturbations()
+            f_perturb1 = f_perturb[0,0,:].cpu().detach().numpy()
+
+            pos_x = self.cam_prev_char_pos[:][0]
+            pos_y = self.cam_prev_char_pos[:][1]
+            pos_z = self.cam_prev_char_pos[:][2]
+            pos = gymapi.Transform(gymapi.Vec3(pos_x, pos_y, pos_z), r=None)
+        
+            # Draw force vector base
+            sphere = gymutil.WireframeSphereGeometry(0.02, 4, 4, None, color=(1, 1, 0))
+            gymutil.draw_lines(sphere, self.gym, self.viewer, self.envs[0], pos)
+
+            # Draw force vector lines
+            self.gym.add_lines(self.viewer, self.envs[0], 1, [pos_x,
+                                                              pos_y,
+                                                              pos_z,
+                                                              pos_x + 0.1 * f_perturb1[0],
+                                                              pos_y + 0.1 * f_perturb1[1],
+                                                              pos_z + 0.1 * f_perturb1[2],
+                                                              ], [1, 0, 0])
 
     def post_physics_step(self):
         self.progress_buf += 1
@@ -314,6 +339,59 @@ class Hexapod(VecTask):
                 colors.append([0.05, 0.99, 0.04])
 
             self.gym.add_lines(self.viewer, None, self.num_envs * 2, points, colors)
+
+    def render(self):
+        """Renders environment. Updates 3rd person follower (if self.camera_follow),
+
+        Copied from isaacgymenvs/tasks/amp/humanoid_amp_base.py
+
+        """
+        if self.viewer and self.camera_follow:
+            self._update_camera()
+
+        super().render()
+        return
+
+    def _init_camera(self):
+        """Initializes viewer camera position and target.
+
+        Copied from isaacgymenvs/tasks/amp/humanoid_amp_base.py
+        
+        """
+        self.gym.refresh_actor_root_state_tensor(self.sim)
+        self.cam_prev_char_pos = self.root_states[0, 0:3].cpu().numpy()
+
+        cam_pos = gymapi.Vec3(self.cam_prev_char_pos[0],
+                              self.cam_prev_char_pos[1] - 3.0,
+                              1.0)
+        cam_target = gymapi.Vec3(self.cam_prev_char_pos[0],
+                                 self.cam_prev_char_pos[1],
+                                 1.0)
+        self.gym.viewer_camera_look_at(self.viewer, None, cam_pos, cam_target)
+        return
+
+    def _update_camera(self):
+        """Updates 3rd person follower,
+
+        Copied from isaacgymenvs/tasks/amp/humanoid_amp_base.py
+        
+        """
+        self.gym.refresh_actor_root_state_tensor(self.sim)
+        char_root_pos = self.root_states[0, 0:3].cpu().numpy()
+
+        cam_trans = self.gym.get_viewer_camera_transform(self.viewer, None)
+        cam_pos = np.array([cam_trans.p.x, cam_trans.p.y, cam_trans.p.z])
+        cam_delta = cam_pos - self.cam_prev_char_pos
+
+        new_cam_target = gymapi.Vec3(char_root_pos[0], char_root_pos[1], 1.0)
+        new_cam_pos = gymapi.Vec3(char_root_pos[0] + cam_delta[0],
+                                  char_root_pos[1] + cam_delta[1],
+                                  cam_pos[2])
+
+        self.gym.viewer_camera_look_at(self.viewer, None, new_cam_pos, new_cam_target)
+
+        self.cam_prev_char_pos[:] = char_root_pos
+        return
 
 #####################################################################
 ###=========================jit functions=========================###
