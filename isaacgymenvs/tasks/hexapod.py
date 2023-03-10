@@ -290,23 +290,24 @@ class Hexapod(VecTask):
             f_perturb = self.apply_perturbations()
             f_perturb1 = f_perturb[0,0,:].cpu().detach().numpy()
 
-            pos_x = self.cam_prev_char_pos[:][0]
-            pos_y = self.cam_prev_char_pos[:][1]
-            pos_z = self.cam_prev_char_pos[:][2]
-            pos = gymapi.Transform(gymapi.Vec3(pos_x, pos_y, pos_z), r=None)
-        
-            # Draw force vector base
-            sphere = gymutil.WireframeSphereGeometry(0.02, 4, 4, None, color=(1, 1, 0))
-            gymutil.draw_lines(sphere, self.gym, self.viewer, self.envs[0], pos)
+            if self.force_render:
+                pos_x = self.cam_prev_char_pos[:][0]
+                pos_y = self.cam_prev_char_pos[:][1]
+                pos_z = self.cam_prev_char_pos[:][2]
+                pos = gymapi.Transform(gymapi.Vec3(pos_x, pos_y, pos_z), r=None)
+            
+                # Draw force vector base
+                sphere = gymutil.WireframeSphereGeometry(0.02, 4, 4, None, color=(1, 1, 0))
+                gymutil.draw_lines(sphere, self.gym, self.viewer, self.envs[0], pos)
 
-            # Draw force vector lines
-            self.gym.add_lines(self.viewer, self.envs[0], 1, [pos_x,
-                                                              pos_y,
-                                                              pos_z,
-                                                              pos_x + 0.1 * f_perturb1[0],
-                                                              pos_y + 0.1 * f_perturb1[1],
-                                                              pos_z + 0.1 * f_perturb1[2],
-                                                              ], [1, 0, 0])
+                # Draw force vector lines
+                self.gym.add_lines(self.viewer, self.envs[0], 1, [pos_x,
+                                                                pos_y,
+                                                                pos_z,
+                                                                pos_x + 0.1 * f_perturb1[0],
+                                                                pos_y + 0.1 * f_perturb1[1],
+                                                                pos_z + 0.1 * f_perturb1[2],
+                                                                ], [1, 0, 0])
 
     def post_physics_step(self):
         self.progress_buf += 1
