@@ -9,6 +9,7 @@ env:
   numEnvs: ${resolve_default:4096,${...num_envs}}
   envSpacing: 5
   episodeLength: 1000
+  cameraFollow: True
   enableDebugVis: False
 
   clipActions: 1.0
@@ -41,7 +42,7 @@ env:
   enableCameraSensors: False
 
 sim:
-  dt: 0.0166 # 1/60 s
+  dt: 0.0166 # 0.0166 # 1/60 s
   substeps: 2
   up_axis: "z"
   use_gpu_pipeline: ${eq:${...pipeline},"gpu"}
@@ -62,6 +63,7 @@ sim:
     contact_collection: 0 # 0: CC_NEVER (don't collect contact info), 1: CC_LAST_SUBSTEP (collect only contacts on last substep), 2: CC_ALL_SUBSTEPS (default - all contacts)
 
 task:
+  perturb: False
   randomize: False
   randomization_params:
     # specify which attributes to randomize for each actor type and property

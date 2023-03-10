@@ -9,7 +9,7 @@ params:
 
   network:
     name: actor_critic
-    separate: False
+    separate: True
     space:
       continuous:
         mu_activation: None
@@ -32,7 +32,7 @@ params:
         name: None
     rnn:
         name: lstm
-        units: 1024
+        units: 512
         layers: 1
         before_mlp: True
         layer_norm: True
@@ -105,5 +105,5 @@ params:
     player:
       #render: True
       deterministic: True
-      games_num: 1000000
+      games_num: 100
       print_stats: False

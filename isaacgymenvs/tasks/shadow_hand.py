@@ -265,6 +265,8 @@ class ShadowHand(VecTask):
         self.gym.set_asset_tendon_properties(shadow_hand_asset, tendon_props)
 
         actuated_dof_names = [self.gym.get_asset_actuator_joint_name(shadow_hand_asset, i) for i in range(self.num_shadow_hand_actuators)]
+        print("*********************", actuated_dof_names)
+        print("*********************", actuated_dof_names)
         self.actuated_dof_indices = [self.gym.find_asset_dof_index(shadow_hand_asset, name) for name in actuated_dof_names]
 
         # get shadow_hand dof properties, loaded by Isaac Gym from the MJCF file
