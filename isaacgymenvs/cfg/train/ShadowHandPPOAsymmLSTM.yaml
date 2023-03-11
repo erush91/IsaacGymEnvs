@@ -105,5 +105,5 @@ params:
     player:
       #render: True
       deterministic: True
-      games_num: 2
+      games_num: 1
       print_stats: False

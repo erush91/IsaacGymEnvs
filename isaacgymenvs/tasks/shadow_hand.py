@@ -140,10 +140,6 @@ class ShadowHand(VecTask):
             print("Reset time: ", self.reset_time)
             print("New episode length: ", self.max_episode_length)
 
-        if self.viewer != None:
-            cam_pos = gymapi.Vec3(10.0, 5.0, 1.0)
-            cam_target = gymapi.Vec3(6.0, 5.0, 0.0)
-            self.gym.viewer_camera_look_at(self.viewer, None, cam_pos, cam_target)
 
         # get gym GPU state tensors
         actor_root_state_tensor = self.gym.acquire_actor_root_state_tensor(self.sim)
@@ -199,6 +195,12 @@ class ShadowHand(VecTask):
 
         self.rb_forces = torch.zeros((self.num_envs, self.num_bodies, 3), dtype=torch.float, device=self.device)
 
+        if self.viewer != None:
+            # cam_pos = gymapi.Vec3(10.0, 5.0, 1.0)
+            # cam_target = gymapi.Vec3(6.0, 5.0, 0.0)
+            # self.gym.viewer_camera_look_at(self.viewer, None, cam_pos, cam_target)
+            self._update_camera()   
+            
     def create_sim(self):
         self.dt = self.cfg["sim"]["dt"]
         self.up_axis_idx = 2 if self.up_axis == 'z' else 1 # index of up axis: Y=1, Z=2
@@ -412,6 +414,26 @@ class ShadowHand(VecTask):
         self.hand_indices = to_torch(self.hand_indices, dtype=torch.long, device=self.device)
         self.object_indices = to_torch(self.object_indices, dtype=torch.long, device=self.device)
         self.goal_object_indices = to_torch(self.goal_object_indices, dtype=torch.long, device=self.device)
+
+    def _update_camera(self):
+        """Updates 3rd person follower,
+
+        Copied from isaacgymenvs/tasks/amp/humanoid_amp_base.py
+        
+        """
+        self.gym.refresh_actor_root_state_tensor(self.sim)
+        char_root_pos = self.object_init_state[0, 0:3].cpu().numpy()
+
+        cam_target = gymapi.Vec3(char_root_pos[0],
+                                 char_root_pos[1],
+                                 char_root_pos[2])
+        cam_pos = gymapi.Vec3(char_root_pos[0] + 0.2,
+                              char_root_pos[1] + 0.2,
+                              char_root_pos[2] + 0.2)
+
+        self.gym.viewer_camera_look_at(self.viewer, None, cam_pos, cam_target)
+
+        return
 
     def compute_reward(self, actions):
         self.rew_buf[:], self.reset_buf[:], self.reset_goal_buf[:], self.progress_buf[:], self.successes[:], self.consecutive_successes[:] = compute_hand_reward(
