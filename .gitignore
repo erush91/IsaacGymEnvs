@@ -31,5 +31,6 @@ outputs/
 *.hydra*
 /isaacgymenvs/wandb
 *.csv
+*.csv#
 /wandb
 *.json
