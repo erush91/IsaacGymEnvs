@@ -498,6 +498,32 @@ class AnymalTerrain(VecTask):
                     sphere_pose = gymapi.Transform(gymapi.Vec3(x, y, z), r=None)
                     gymutil.draw_lines(sphere_geom, self.gym, self.viewer, self.envs[i], sphere_pose) 
 
+
+
+        # Draw force vector lines
+        for i in range(self.num_envs):
+
+            # add yaw goal vector viz (GENE)
+            pos_x = self.root_states[i, 0].cpu().detach().numpy()
+            pos_y = self.root_states[i, 1].cpu().detach().numpy()
+            pos_z = self.root_states[i, 2].cpu().detach().numpy()
+            pos = gymapi.Transform(gymapi.Vec3(pos_x, pos_y, pos_z), r=None)
+        
+            # Draw force vector base
+            sphere = gymutil.WireframeSphereGeometry(0.02, 4, 4, None, color=(1, 1, 0))
+            gymutil.draw_lines(sphere, self.gym, self.viewer, self.envs[0], pos)
+
+            goal_yaw_x = torch.cos(self.commands[i, 3]).cpu().detach().numpy()
+            goal_yaw_y = torch.sin(self.commands[i, 3]).cpu().detach().numpy()
+            self.gym.add_lines(self.viewer, self.envs[0], 1, [pos_x,
+                                                              pos_y,
+                                                              pos_z,
+                                                              pos_x + goal_yaw_x,
+                                                              pos_y + goal_yaw_y,
+                                                              pos_z,
+                                                              ], [1, 0, 0])
+
+
     def init_height_points(self):
         # 1mx1.6m rectangle (without center line)
         y = 0.1 * torch.tensor([-5, -4, -3, -2, -1, 1, 2, 3, 4, 5], device=self.device, requires_grad=False) # 10-50cm on each side
