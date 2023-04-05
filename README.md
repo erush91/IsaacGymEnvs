@@ -27,7 +27,7 @@ pip install -e .
 
 ### Creating an environment
 
-We offer an easy-to-use API for creating preset vectorized environments. For more info on what an vectorized environment is and its usage, please refer to the Gym's [documentation](https://www.gymlibrary.ml/content/vector_api/).
+We offer an easy-to-use API for creating preset vectorized environments. For more info on what a vectorized environment is and its usage, please refer to the Gym library [documentation](https://www.gymlibrary.dev/content/vectorising/#vectorized-environments).
 
 ```python
 import isaacgym
@@ -114,7 +114,7 @@ differences from previous incarnations in older versions of Isaac Gym.
  
 Key arguments to the `train.py` script are:
 
-* `task=TASK` - selects which task to use. Any of `AllegroHand`, `Ant`, `Anymal`, `AnymalTerrain`, `BallBalance`, `Cartpole`, `FrankaCabinet`, `Humanoid`, `Ingenuity` `Quadcopter`, `ShadowHand`, `ShadowHandOpenAI_FF`, `ShadowHandOpenAI_LSTM`, and `Trifinger` (these correspond to the config for each environment in the folder `isaacgymenvs/config/task`)
+* `task=TASK` - selects which task to use. Any of `AllegroHand`, `AllegroHandDextremeADR`, `AllegroHandDextremeManualDR`, `Ant`, `Anymal`, `AnymalTerrain`, `BallBalance`, `Cartpole`, `FrankaCabinet`, `Humanoid`, `Ingenuity` `Quadcopter`, `ShadowHand`, `ShadowHandOpenAI_FF`, `ShadowHandOpenAI_LSTM`, and `Trifinger` (these correspond to the config for each environment in the folder `isaacgymenvs/config/task`)
 * `train=TRAIN` - selects which training config to use. Will automatically default to the correct config for the environment (ie. `<TASK>PPO`).
 * `num_envs=NUM_ENVS` - selects the number of environments to use (overriding the default number of environments set in the task config).
 * `seed=SEED` - sets a seed value for randomizations, and overrides the default seed set up in the task config
@@ -302,3 +302,17 @@ If you use the Factory simulation methods (e.g., SDF collisions, contact reducti
 	year = {2022}
 } 
 ```
+
+If you use the DeXtreme: Transfer of Agile In-hand Manipulation from Simulation to Reality work or the code related to Automatic Domain Randomisation, please cite the following paper:
+
+```
+@inproceedings{
+	handa2023dextreme,
+	author = {Ankur Handa, Arthur Allshire, Viktor Makoviychuk, Aleksei Petrenko, Ritvik Singh, Jingzhou Liu, Denys Makoviichuk, Karl Van Wyk, Alexander Zhurkevich, Balakumar Sundaralingam, Yashraj Narang, Jean-Francois Lafleche, Dieter Fox, Gavriel State},
+	title = {DeXtreme: Transfer of Agile In-hand Manipulation from Simulation to Reality},
+	booktitle = {ICRA},
+	year = {2023}
+} 
+```
+
+
