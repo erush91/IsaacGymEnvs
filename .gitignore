@@ -35,3 +35,7 @@ outputs/
 *.csv#
 /wandb
 *.json
+*.avi
+*.mp4
+*.mov
+*.png

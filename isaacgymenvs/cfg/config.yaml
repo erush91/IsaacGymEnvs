@@ -53,10 +53,10 @@ wandb_logcode_dir: ''
 capture_video: False # False
 capture_video_freq: 1464 # 1464
 capture_video_len: 3600 # 100
-force_render: True
+force_render: False
 
 # disables rendering
-headless: False
+headless: True
 
 # set default task and default training config based on task
 defaults:
