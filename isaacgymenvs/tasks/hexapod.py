@@ -1,4 +1,4 @@
-# Copyright (c) 2018-2023, NVIDIA Corporation
+# Copyright (c) 2018-2022, NVIDIA Corporation
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -32,13 +32,14 @@ import torch
 
 from isaacgym import gymtorch
 from isaacgym import gymapi
+from isaacgym import gymutil
 from isaacgym.gymtorch import *
 
 from isaacgymenvs.utils.torch_jit_utils import *
 from isaacgymenvs.tasks.base.vec_task import VecTask
 
 
-class Ant(VecTask):
+class Hexapod(VecTask):
 
     def __init__(self, cfg, rl_device, sim_device, graphics_device_id, headless, virtual_screen_capture, force_render):
 
@@ -46,6 +47,9 @@ class Ant(VecTask):
 
         self.max_episode_length = self.cfg["env"]["episodeLength"]
 
+        self.camera_follow = self.cfg["env"].get("cameraFollow", False)
+        # self.perturbation_params = self.cfg["task"]["perturbation_params"]
+        self.perturb = self.cfg["task"]["perturb"]
         self.randomization_params = self.cfg["task"]["randomization_params"]
         self.randomize = self.cfg["task"]["randomize"]
         self.dof_vel_scale = self.cfg["env"]["dofVelocityScale"]
@@ -64,22 +68,19 @@ class Ant(VecTask):
         self.plane_dynamic_friction = self.cfg["env"]["plane"]["dynamicFriction"]
         self.plane_restitution = self.cfg["env"]["plane"]["restitution"]
 
-        self.cfg["env"]["numObservations"] = 60
-        self.cfg["env"]["numActions"] = 8
+        self.cfg["env"]["numObservations"] = 84
+        self.cfg["env"]["numActions"] = 12
+        
+
 
         super().__init__(config=self.cfg, rl_device=rl_device, sim_device=sim_device, graphics_device_id=graphics_device_id, headless=headless, virtual_screen_capture=virtual_screen_capture, force_render=force_render)
-
-        if self.viewer != None:
-            cam_pos = gymapi.Vec3(50.0, 25.0, 2.4)
-            cam_target = gymapi.Vec3(45.0, 25.0, 0.0)
-            self.gym.viewer_camera_look_at(self.viewer, None, cam_pos, cam_target)
 
         # get gym GPU state tensors
         actor_root_state = self.gym.acquire_actor_root_state_tensor(self.sim)
         dof_state_tensor = self.gym.acquire_dof_state_tensor(self.sim)
         sensor_tensor = self.gym.acquire_force_sensor_tensor(self.sim)
 
-        sensors_per_env = 4
+        sensors_per_env = 6
         self.vec_sensor_tensor = gymtorch.wrap_tensor(sensor_tensor).view(self.num_envs, sensors_per_env * 6)
 
         self.gym.refresh_dof_state_tensor(self.sim)
@@ -113,6 +114,13 @@ class Ant(VecTask):
         self.potentials = to_torch([-1000./self.dt], device=self.device).repeat(self.num_envs)
         self.prev_potentials = self.potentials.clone()
 
+        if self.viewer != None:
+            # cam_pos = gymapi.Vec3(50.0, 25.0, 2.4)
+            # cam_target = gymapi.Vec3(45.0, 25.0, 0.0)
+            # self.gym.viewer_camera_look_at(self.viewer, None, cam_pos, cam_target)
+            
+            self._init_camera()
+
     def create_sim(self):
         self.up_axis_idx = 2 # index of up axis: Y=1, Z=2
         self.sim = super().create_sim(self.device_id, self.graphics_device_id, self.physics_engine, self.sim_params)
@@ -137,7 +145,7 @@ class Ant(VecTask):
         upper = gymapi.Vec3(spacing, spacing, spacing)
 
         asset_root = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../assets')
-        asset_file = "mjcf/nv_ant.xml"
+        asset_file = "mjcf/hexapod.xml"
 
         if "asset" in self.cfg["env"]:
             asset_file = self.cfg["env"]["asset"].get("assetFileName", asset_file)
@@ -151,12 +159,12 @@ class Ant(VecTask):
         asset_options.default_dof_drive_mode = gymapi.DOF_MODE_NONE
         asset_options.angular_damping = 0.0
 
-        ant_asset = self.gym.load_asset(self.sim, asset_root, asset_file, asset_options)
-        self.num_dof = self.gym.get_asset_dof_count(ant_asset)
-        self.num_bodies = self.gym.get_asset_rigid_body_count(ant_asset)
+        hexapod_asset = self.gym.load_asset(self.sim, asset_root, asset_file, asset_options)
+        self.num_dof = self.gym.get_asset_dof_count(hexapod_asset)
+        self.num_bodies = self.gym.get_asset_rigid_body_count(hexapod_asset)
 
         # Note - for this asset we are loading the actuator info from the MJCF
-        actuator_props = self.gym.get_asset_actuator_properties(ant_asset)
+        actuator_props = self.gym.get_asset_actuator_properties(hexapod_asset)
         motor_efforts = [prop.motor_effort for prop in actuator_props]
         self.joint_gears = to_torch(motor_efforts, device=self.device)
 
@@ -166,18 +174,18 @@ class Ant(VecTask):
         self.start_rotation = torch.tensor([start_pose.r.x, start_pose.r.y, start_pose.r.z, start_pose.r.w], device=self.device)
 
         self.torso_index = 0
-        self.num_bodies = self.gym.get_asset_rigid_body_count(ant_asset)
-        body_names = [self.gym.get_asset_rigid_body_name(ant_asset, i) for i in range(self.num_bodies)]
+        self.num_bodies = self.gym.get_asset_rigid_body_count(hexapod_asset)
+        body_names = [self.gym.get_asset_rigid_body_name(hexapod_asset, i) for i in range(self.num_bodies)]
         extremity_names = [s for s in body_names if "foot" in s]
         self.extremities_index = torch.zeros(len(extremity_names), dtype=torch.long, device=self.device)
 
         # create force sensors attached to the "feet"
-        extremity_indices = [self.gym.find_asset_rigid_body_index(ant_asset, name) for name in extremity_names]
+        extremity_indices = [self.gym.find_asset_rigid_body_index(hexapod_asset, name) for name in extremity_names]
         sensor_pose = gymapi.Transform()
         for body_idx in extremity_indices:
-            self.gym.create_asset_force_sensor(ant_asset, body_idx, sensor_pose)
+            self.gym.create_asset_force_sensor(hexapod_asset, body_idx, sensor_pose)
 
-        self.ant_handles = []
+        self.hexapod_handles = []
         self.envs = []
         self.dof_limits_lower = []
         self.dof_limits_upper = []
@@ -187,16 +195,16 @@ class Ant(VecTask):
             env_ptr = self.gym.create_env(
                 self.sim, lower, upper, num_per_row
             )
-            ant_handle = self.gym.create_actor(env_ptr, ant_asset, start_pose, "ant", i, 1, 0)
+            hexapod_handle = self.gym.create_actor(env_ptr, hexapod_asset, start_pose, "hexapod", i, 1, 0)
 
             for j in range(self.num_bodies):
                 self.gym.set_rigid_body_color(
-                    env_ptr, ant_handle, j, gymapi.MESH_VISUAL, gymapi.Vec3(0.97, 0.38, 0.06))
+                    env_ptr, hexapod_handle, j, gymapi.MESH_VISUAL, gymapi.Vec3(0.97, 0.38, 0.06))
 
             self.envs.append(env_ptr)
-            self.ant_handles.append(ant_handle)
+            self.hexapod_handles.append(hexapod_handle)
 
-        dof_prop = self.gym.get_actor_dof_properties(env_ptr, ant_handle)
+        dof_prop = self.gym.get_actor_dof_properties(env_ptr, hexapod_handle)
         for j in range(self.num_dof):
             if dof_prop['lower'][j] > dof_prop['upper'][j]:
                 self.dof_limits_lower.append(dof_prop['upper'][j])
@@ -209,10 +217,10 @@ class Ant(VecTask):
         self.dof_limits_upper = to_torch(self.dof_limits_upper, device=self.device)
 
         for i in range(len(extremity_names)):
-            self.extremities_index[i] = self.gym.find_actor_rigid_body_handle(self.envs[0], self.ant_handles[0], extremity_names[i])
+            self.extremities_index[i] = self.gym.find_actor_rigid_body_handle(self.envs[0], self.hexapod_handles[0], extremity_names[i])
 
     def compute_reward(self, actions):
-        self.rew_buf[:], self.reset_buf[:] = compute_ant_reward(
+        self.rew_buf[:], self.reset_buf[:] = compute_hexapod_reward(
             self.obs_buf,
             self.reset_buf,
             self.progress_buf,
@@ -233,10 +241,10 @@ class Ant(VecTask):
         self.gym.refresh_dof_state_tensor(self.sim)
         self.gym.refresh_actor_root_state_tensor(self.sim)
         self.gym.refresh_force_sensor_tensor(self.sim)
-        #print("Feet forces and torques: ", self.vec_sensor_tensor[0, :])
+        # print("Feet forces and torques: ", self.vec_sensor_tensor[0, :])
         # print(self.vec_sensor_tensor.shape)
 
-        self.obs_buf[:], self.potentials[:], self.prev_potentials[:], self.up_vec[:], self.heading_vec[:] = compute_ant_observations(
+        self.obs_buf[:], self.potentials[:], self.prev_potentials[:], self.up_vec[:], self.heading_vec[:] = compute_hexapod_observations(
             self.obs_buf, self.root_states, self.targets, self.potentials,
             self.inv_start_rot, self.dof_pos, self.dof_vel,
             self.dof_limits_lower, self.dof_limits_upper, self.dof_vel_scale,
@@ -278,6 +286,29 @@ class Ant(VecTask):
         force_tensor = gymtorch.unwrap_tensor(forces)
         self.gym.set_dof_actuation_force_tensor(self.sim, force_tensor)
 
+        if self.perturb:
+            f_perturb = self.apply_perturbations()
+            f_perturb1 = f_perturb[0,0,:].cpu().detach().numpy()
+
+            if self.force_render:
+                pos_x = self.cam_prev_char_pos[:][0]
+                pos_y = self.cam_prev_char_pos[:][1]
+                pos_z = self.cam_prev_char_pos[:][2]
+                pos = gymapi.Transform(gymapi.Vec3(pos_x, pos_y, pos_z), r=None)
+            
+                # Draw force vector base
+                sphere = gymutil.WireframeSphereGeometry(0.02, 4, 4, None, color=(1, 1, 0))
+                gymutil.draw_lines(sphere, self.gym, self.viewer, self.envs[0], pos)
+
+                # Draw force vector lines
+                self.gym.add_lines(self.viewer, self.envs[0], 1, [pos_x,
+                                                                pos_y,
+                                                                pos_z,
+                                                                pos_x + 0.1 * f_perturb1[0],
+                                                                pos_y + 0.1 * f_perturb1[1],
+                                                                pos_z + 0.1 * f_perturb1[2],
+                                                                ], [1, 0, 0])
+
     def post_physics_step(self):
         self.progress_buf += 1
         self.randomize_buf += 1
@@ -310,13 +341,66 @@ class Ant(VecTask):
 
             self.gym.add_lines(self.viewer, None, self.num_envs * 2, points, colors)
 
+    def render(self):
+        """Renders environment. Updates 3rd person follower (if self.camera_follow),
+
+        Copied from isaacgymenvs/tasks/amp/humanoid_amp_base.py
+
+        """
+        if self.viewer and self.camera_follow:
+            self._update_camera()
+
+        super().render()
+        return
+
+    def _init_camera(self):
+        """Initializes viewer camera position and target.
+
+        Copied from isaacgymenvs/tasks/amp/humanoid_amp_base.py
+        
+        """
+        self.gym.refresh_actor_root_state_tensor(self.sim)
+        self.cam_prev_char_pos = self.root_states[0, 0:3].cpu().numpy()
+
+        cam_pos = gymapi.Vec3(self.cam_prev_char_pos[0],
+                              self.cam_prev_char_pos[1] - 3.0,
+                              1.0)
+        cam_target = gymapi.Vec3(self.cam_prev_char_pos[0],
+                                 self.cam_prev_char_pos[1],
+                                 1.0)
+        self.gym.viewer_camera_look_at(self.viewer, None, cam_pos, cam_target)
+        return
+
+    def _update_camera(self):
+        """Updates 3rd person follower,
+
+        Copied from isaacgymenvs/tasks/amp/humanoid_amp_base.py
+        
+        """
+        self.gym.refresh_actor_root_state_tensor(self.sim)
+        char_root_pos = self.root_states[0, 0:3].cpu().numpy()
+
+        cam_trans = self.gym.get_viewer_camera_transform(self.viewer, None)
+        cam_pos = np.array([cam_trans.p.x, cam_trans.p.y, cam_trans.p.z])
+        cam_delta = cam_pos - self.cam_prev_char_pos
+
+        new_cam_target = gymapi.Vec3(char_root_pos[0], char_root_pos[1], 1.0)
+        new_cam_pos = gymapi.Vec3(char_root_pos[0] + cam_delta[0],
+                                  char_root_pos[1] + cam_delta[1],
+                                  cam_pos[2])
+
+        self.gym.viewer_camera_look_at(self.viewer, None, new_cam_pos, new_cam_target)
+
+        self.cam_prev_char_pos[:] = char_root_pos
+        return
+
 #####################################################################
 ###=========================jit functions=========================###
 #####################################################################
 
 
 @torch.jit.script
-def compute_ant_reward(
+def compute_hexapod_reward(
     obs_buf,
     reset_buf,
     progress_buf,
@@ -338,20 +422,20 @@ def compute_ant_reward(
     heading_weight_tensor = torch.ones_like(obs_buf[:, 11]) * heading_weight
     heading_reward = torch.where(obs_buf[:, 11] > 0.8, heading_weight_tensor, heading_weight * obs_buf[:, 11] / 0.8)
 
-    # aligning up axis of ant and environment
+    # aligning up axis of hexapod and environment
     up_reward = torch.zeros_like(heading_reward)
     up_reward = torch.where(obs_buf[:, 10] > 0.93, up_reward + up_weight, up_reward)
 
     # energy penalty for movement
     actions_cost = torch.sum(actions ** 2, dim=-1)
-    electricity_cost = torch.sum(torch.abs(actions * obs_buf[:, 20:28]), dim=-1)
-    dof_at_limit_cost = torch.sum(obs_buf[:, 12:20] > 0.99, dim=-1)
+    electricity_cost = torch.sum(torch.abs(actions * obs_buf[:, 24:36]), dim=-1)
+    dof_at_limit_cost = torch.sum(obs_buf[:, 12:24] > 0.99, dim=-1)
 
     # reward for duration of staying alive
     alive_reward = torch.ones_like(potentials) * 0.5
     progress_reward = potentials - prev_potentials
 
-    total_reward = progress_reward + alive_reward - \
+    total_reward = progress_reward + alive_reward + up_reward + heading_reward - \
         actions_cost_scale * actions_cost - energy_cost_scale * electricity_cost - dof_at_limit_cost * joints_at_limit_cost_scale
 
     # adjust reward for fallen agents
@@ -361,11 +445,20 @@ def compute_ant_reward(
     reset = torch.where(obs_buf[:, 0] < termination_height, torch.ones_like(reset_buf), reset_buf)
     reset = torch.where(progress_buf >= max_episode_length - 1, torch.ones_like(reset_buf), reset)
 
+    # print("heading_reward:", torch.sum(heading_reward))
+    # print("up_reward:", torch.sum(up_reward))
+    # print("actions_cost:", actions_cost_scale * torch.sum(actions_cost))
+    # print("electricity_cost:", energy_cost_scale * torch.sum(electricity_cost))
+    # print("dof_at_limit_cost:", joints_at_limit_cost_scale * torch.sum(dof_at_limit_cost))
+    # print("alive_reward:", torch.sum(alive_reward))
+    # print("progress_reward:", torch.sum(progress_reward))
+    # print("total_reward:", torch.sum(total_reward))
+
     return total_reward, reset
 
 
 @torch.jit.script
-def compute_ant_observations(obs_buf, root_states, targets, potentials,
+def compute_hexapod_observations(obs_buf, root_states, targets, potentials,
                              inv_start_rot, dof_pos, dof_vel,
                              dof_limits_lower, dof_limits_upper, dof_vel_scale,
                              sensor_force_torques, actions, dt, contact_force_scale,
@@ -391,11 +484,12 @@ def compute_ant_observations(obs_buf, root_states, targets, potentials,
 
     dof_pos_scaled = unscale(dof_pos, dof_limits_lower, dof_limits_upper)
 
-    # obs_buf shapes: 1, 3, 3, 1, 1, 1, 1, 1, num_dofs(8), num_dofs(8), 24, num_dofs(8)
+    # obs_buf shapes: 1, 3, 3, 1, 1, 1, 1, 1,  8,  8, 24,  8
+    # obs_buf shapes: 1, 3, 3, 1, 1, 1, 1, 1, 12, 12, 36, 12
     obs = torch.cat((torso_position[:, up_axis_idx].view(-1, 1), vel_loc, angvel_loc,
                      yaw.unsqueeze(-1), roll.unsqueeze(-1), angle_to_target.unsqueeze(-1),
                      up_proj.unsqueeze(-1), heading_proj.unsqueeze(-1), dof_pos_scaled,
-                     dof_vel * dof_vel_scale, sensor_force_torques.view(-1, 24) * contact_force_scale,
+                     dof_vel * dof_vel_scale, sensor_force_torques.view(-1, 36) * contact_force_scale,
                      actions), dim=-1)
 
     return obs, potentials, prev_potentials_new, up_vec, heading_vec

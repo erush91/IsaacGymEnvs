@@ -47,6 +47,7 @@ class AnymalTerrain(VecTask):
         self.cfg = cfg
         self.height_samples = None
         self.custom_origins = False
+        self.camera_follow = self.cfg["env"].get("cameraFollow", False)
         self.debug_viz = self.cfg["env"]["enableDebugVis"]
         self.init_done = False
 
@@ -137,6 +138,8 @@ class AnymalTerrain(VecTask):
         self.commands_scale = torch.tensor([self.lin_vel_scale, self.lin_vel_scale, self.ang_vel_scale], device=self.device, requires_grad=False,)
         self.gravity_vec = to_torch(get_axis_params(-1., self.up_axis_idx), device=self.device).repeat((self.num_envs, 1))
         self.forward_vec = to_torch([1., 0., 0.], device=self.device).repeat((self.num_envs, 1))
+        self.left_vec = to_torch([0., 1., 0.], device=self.device).repeat((self.num_envs, 1))
+        self.up_vec = to_torch([0., 0., 1.], device=self.device).repeat((self.num_envs, 1))
         self.torques = torch.zeros(self.num_envs, self.num_actions, dtype=torch.float, device=self.device, requires_grad=False)
         self.actions = torch.zeros(self.num_envs, self.num_actions, dtype=torch.float, device=self.device, requires_grad=False)
         self.last_actions = torch.zeros(self.num_envs, self.num_actions, dtype=torch.float, device=self.device, requires_grad=False)
@@ -298,6 +301,26 @@ class AnymalTerrain(VecTask):
             self.reset_buf |= torch.any(knee_contact, dim=1)
 
         self.reset_buf = torch.where(self.progress_buf >= self.max_episode_length - 1, torch.ones_like(self.reset_buf), self.reset_buf)
+
+    def _update_camera(self):
+        """Updates 3rd person follower,
+
+        Copied from isaacgymenvs/tasks/amp/humanoid_amp_base.py
+        
+        """
+        self.gym.refresh_actor_root_state_tensor(self.sim)
+        char_root_pos = self.root_states[0, :3].cpu().numpy()
+
+        cam_target = gymapi.Vec3(char_root_pos[0],
+                                 char_root_pos[1],
+                                 char_root_pos[2])
+        cam_pos = gymapi.Vec3(char_root_pos[0] - 0.5,
+                              char_root_pos[1] - 0.0,
+                              char_root_pos[2] + 2.5)
+
+        self.gym.viewer_camera_look_at(self.viewer, None, cam_pos, cam_target)
+
+        return
 
     def compute_observations(self):
         self.measured_heights = self.get_heights()
@@ -499,6 +522,51 @@ class AnymalTerrain(VecTask):
                     z = heights[j]
                     sphere_pose = gymapi.Transform(gymapi.Vec3(x, y, z), r=None)
                     gymutil.draw_lines(sphere_geom, self.gym, self.viewer, self.envs[i], sphere_pose) 
+
+
+
+        # Draw force vector lines
+        self.gym.clear_lines(self.viewer)
+        for i in range(self.num_envs):
+
+            p_x = self.root_states[i, 0].cpu().detach().numpy()
+            p_y = self.root_states[i, 1].cpu().detach().numpy()
+            p_z = self.root_states[i, 2].cpu().detach().numpy()
+            p = gymapi.Transform(gymapi.Vec3(p_x, p_y, p_z), r=None)
+            sphere = gymutil.WireframeSphereGeometry(0.02, 4, 4, None, color=(1, 1, 0))
+            gymutil.draw_lines(sphere, self.gym, self.viewer, self.envs[0], p)
+
+            forward = quat_apply(self.base_quat, self.forward_vec).cpu().detach().numpy()
+            left = quat_apply(self.base_quat, self.left_vec).cpu().detach().numpy()
+            up = quat_apply(self.base_quat, self.up_vec).cpu().detach().numpy()
+
+
+            # add body axes (GENE)
+            self.gym.add_lines(self.viewer, self.envs[i], 1, [p.p.x, p.p.y, p.p.z, p.p.x + forward[i,0], p.p.y + forward[i,1], p.p.z + forward[i,2]], [1, 0, 0])
+            self.gym.add_lines(self.viewer, self.envs[i], 1, [p.p.x, p.p.y, p.p.z, p.p.x + left[i,0], p.p.y + left[i,1], p.p.z + left[i,2]], [1, 0, 0])
+            self.gym.add_lines(self.viewer, self.envs[i], 1, [p.p.x, p.p.y, p.p.z, p.p.x + up[i,0], p.p.y + up[i,1], p.p.z + up[i,2]], [1, 0, 0])
+
+            # targetx = (self.goal_pos[i] + quat_apply(self.goal_rot[i], to_torch([1, 0, 0], device=self.device) * 0.2)).cpu().numpy()
+            # targety = (self.goal_pos[i] + quat_apply(self.goal_rot[i], to_torch([0, 1, 0], device=self.device) * 0.2)).cpu().numpy()
+            # targetz = (self.goal_pos[i] + quat_apply(self.goal_rot[i], to_torch([0, 0, 1], device=self.device) * 0.2)).cpu().numpy()
+            
+            # # Draw force vector / yaw goal base (GENE)
+            # goal_yaw_x = torch.cos(self.commands[i, 3]).cpu().detach().numpy()
+            # goal_yaw_y = torch.sin(self.commands[i, 3]).cpu().detach().numpy()
+            # self.gym.add_lines(self.viewer, self.envs[0], 1, [pos_x,
+            #                                                     pos_y,
+            #                                                     pos_z,
+            #                                                     pos_x + goal_yaw_x,
+            #                                                     pos_y + goal_yaw_y,
+            #                                                     pos_z,
+            #                                                     ], [1, 0, 0])
+
+    def render(self):
+        if self.viewer and self.camera_follow:
+            self._update_camera()
+
+        super().render()
+        return
 
     def init_height_points(self):
         # 1mx1.6m rectangle (without center line)

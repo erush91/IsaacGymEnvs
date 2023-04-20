@@ -34,6 +34,7 @@ num_subscenes: 4 # Splits the simulation into N physics scenes and runs each one
 # RLGames Arguments
 # test - if set, run policy in inference mode (requires setting checkpoint to load)
 test: False
+analyze: True
 # used to set checkpoint path
 checkpoint: ''
 # set sigma when restoring network
@@ -44,7 +45,7 @@ multi_gpu: False
 wandb_activate: False
 wandb_group: ''
 wandb_name: ${train.params.config.name}
-wandb_entity: ''
+wandb_entity: 'erush91'
 wandb_project: 'isaacgymenvs'
 wandb_tags: []
 wandb_logcode_dir: '' 
@@ -55,12 +56,13 @@ capture_video_len: 100
 force_render: True
 
 # disables rendering
-headless: False
+headless: True
 
 # set default task and default training config based on task
 defaults:
   - task: Ant
-  - train: ${task}PPO_LSTM
+  # - train: ${task}PPO # ShadowHand
+  - train: ${task}PPO_LSTM # Anymal
   - hydra/job_logging: disabled
 
 # set the directory where the output files get saved

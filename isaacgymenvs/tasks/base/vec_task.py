@@ -221,6 +221,8 @@ class VecTask(Env):
         self.extern_actor_params = {}
         self.last_step = -1
         self.last_rand_step = -1
+        self.perturbation = False
+        self.f_perturb = None
         for env_id in range(self.num_envs):
             self.extern_actor_params[env_id] = None
 
@@ -548,6 +550,56 @@ class VecTask(Env):
                             highs.append(lo_hi[1])
         return params, names, lows, highs
 
+    def apply_perturbations(self):
+        """Apply perturbation to agent.
+
+        Args:
+            dr_params: parameters for domain randomization to use.
+        """
+
+        # CONSTANT PERTURBATION
+        # self.perturbation = True
+        # self.f_perturb[:,0,2] = 10.0
+
+        if self.f_perturb is None:
+            self.f_perturb = torch.zeros((self.num_envs, self.num_bodies, 3), device=self.device, dtype=torch.float)
+        
+        # existing perturbation?
+        if self.perturbation:
+            # continue existing perturbation
+            if random.random() < 0.8:
+                self.perturbation = True
+                self.f_perturb = self.f_perturb
+            # end existing perturbation
+            else:
+                self.perturbation = False
+                self.f_perturb = torch.zeros((self.num_envs, self.num_bodies, 3), device=self.device, dtype=torch.float)
+        # no existing perturbation?
+        else:
+            # create new perturbation
+            if random.random() < 1:
+                self.perturbation = True
+                self.f_perturb[:,0,0] = random.gauss(mu=0, sigma=4)
+                self.f_perturb[:,0,1] = random.gauss(mu=0, sigma=4)
+                self.f_perturb[:,0,2] = random.gauss(mu=0, sigma=4)
+            # don't create new perturbation
+            else:
+                self.perturbation = False
+                self.f_perturb = self.f_perturb
+
+        # Apply force to rigid body (center of mass)
+        if self.perturbation:
+            self.gym.apply_rigid_body_force_tensors(self.sim, gymtorch.unwrap_tensor(self.f_perturb), None, gymapi.ENV_SPACE)
+
+        # TO DO: Apply forces to different body parts, not just center of mass (rigid body)!
+
+        # TO DO: Add visualization to Isaac Gym viewer
+        # https://forums.developer.nvidia.com/t/visualize-tensors-in-gym-viewer/203027
+        # https://forums.developer.nvidia.com/t/clear-lines-and-wireframespheregeometry/185317
+        # https://forums.developer.nvidia.com/t/rigid-body-states-of-shadowhands-fingers/170058
+
+        return self.f_perturb
+        
     def apply_randomizations(self, dr_params):
         """Apply domain randomizations to the environment.
 

@@ -33,3 +33,9 @@ outputs/
 /isaacgymenvs/wandb
 *.csv
 *.json
+*.csv#
+/wandb
+*.avi
+*.mp4
+*.mov
+*.png

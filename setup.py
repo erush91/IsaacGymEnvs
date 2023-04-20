@@ -21,6 +21,7 @@ INSTALL_REQUIRES = [
     "hydra-core>=1.1",
     "rl-games==1.6.0",
     "pyvirtualdisplay",
+    "pandas",
     ]
 
 

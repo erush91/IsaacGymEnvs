@@ -8,6 +8,7 @@ env:
   numObservations: 188
   numActions: 12
   envSpacing: 3.  # [m]
+  cameraFollow: True
   enableDebugVis: False
 
   terrain:
