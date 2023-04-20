@@ -32,9 +32,9 @@ outputs/
 *.hydra*
 /isaacgymenvs/wandb
 *.csv
+*.json
 *.csv#
 /wandb
-*.json
 *.avi
 *.mp4
 *.mov

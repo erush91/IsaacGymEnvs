@@ -50,10 +50,10 @@ wandb_project: 'isaacgymenvs'
 wandb_tags: []
 wandb_logcode_dir: '' 
 
-capture_video: False # False
-capture_video_freq: 1464 # 1464
-capture_video_len: 3600 # 100
-force_render: False
+capture_video: True
+capture_video_freq: 1464
+capture_video_len: 100
+force_render: True
 
 # disables rendering
 headless: True
