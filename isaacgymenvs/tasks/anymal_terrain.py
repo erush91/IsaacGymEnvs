@@ -76,6 +76,7 @@ class AnymalTerrain(VecTask):
         self.rew_scales["hip"] = self.cfg["env"]["learn"]["hipRewardScale"]
 
         #command ranges
+        self.command_random = self.cfg["env"]["randomCommand"]
         self.command_x_range = self.cfg["env"]["randomCommandVelocityRanges"]["linear_x"]
         self.command_y_range = self.cfg["env"]["randomCommandVelocityRanges"]["linear_y"]
         self.command_yaw_range = self.cfg["env"]["randomCommandVelocityRanges"]["yaw"]
@@ -406,9 +407,19 @@ class AnymalTerrain(VecTask):
                                               gymtorch.unwrap_tensor(self.dof_state),
                                               gymtorch.unwrap_tensor(env_ids_int32), len(env_ids_int32))
 
-        self.commands[env_ids, 0] = torch_rand_float(self.command_x_range[0], self.command_x_range[1], (len(env_ids), 1), device=self.device).squeeze()
-        self.commands[env_ids, 1] = torch_rand_float(self.command_y_range[0], self.command_y_range[1], (len(env_ids), 1), device=self.device).squeeze()
-        self.commands[env_ids, 3] = torch_rand_float(self.command_yaw_range[0], self.command_yaw_range[1], (len(env_ids), 1), device=self.device).squeeze()
+        if self.command_random:
+            self.commands[env_ids, 0] = torch_rand_float(self.command_x_range[0], self.command_x_range[1], (len(env_ids), 1), device=self.device).squeeze()
+            self.commands[env_ids, 1] = torch_rand_float(self.command_y_range[0], self.command_y_range[1], (len(env_ids), 1), device=self.device).squeeze()
+            self.commands[env_ids, 3] = torch_rand_float(self.command_yaw_range[0], self.command_yaw_range[1], (len(env_ids), 1), device=self.device).squeeze()
+            self.commands[env_ids] *= (torch.norm(self.commands[env_ids, :2], dim=1) > 0.25).unsqueeze(1) # set small commands to zero
+        else:
+            u = torch.linspace(self.command_x_range[0], self.command_x_range[1], 5, device=self.device).squeeze()
+            v = torch.linspace(self.command_y_range[0], self.command_y_range[1], 5, device=self.device).squeeze()
+            r = torch.linspace(self.command_yaw_range[0], self.command_yaw_range[1], 5, device=self.device).squeeze()
+            uvr = torch.meshgrid(u, v, r)
+            self.commands[:5*5*5, 0] = torch.flatten(uvr[0])
+            self.commands[:5*5*5, 1] = torch.flatten(uvr[1])
+            self.commands[:5*5*5, 3] = torch.flatten(uvr[2])
         self.commands[env_ids] *= (torch.norm(self.commands[env_ids, :2], dim=1) > 0.25).unsqueeze(1) # set small commands to zero
 
         self.last_actions[env_ids] = 0.
