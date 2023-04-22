@@ -7,7 +7,7 @@ env:
   numEnvs: ${resolve_default:4096,${...num_envs}}
   numObservations: 188
   numActions: 12
-  envSpacing: 3.  # [m]
+  envSpacing: 0.  # [m]
   enableDebugVis: False
 
   neuroRL: true
@@ -21,26 +21,27 @@ env:
     linear_x: 5
     linear_y: 5
     yaw_rate: 5
-    
+
+  
   terrain:
-    terrainType: trimesh # none, plane, or trimesh
+    terrainType: plane # none, plane, or trimesh
     staticFriction: 1.0  # [-]
     dynamicFriction: 1.0  # [-]
     restitution: 0.        # [-]
     # rough terrain only:
     curriculum: true
     maxInitMapLevel: 0
-    mapLength: 8.
-    mapWidth: 8.
-    numLevels: 10
-    numTerrains: 20
+    mapLength: 40.
+    mapWidth: 40.
+    numLevels: 1
+    numTerrains: 1
     # terrain types: [smooth slope, rough slope, stairs up, stairs down, discrete]
-    terrainProportions: [0.1, 0.1, 0.35, 0.25, 0.2]
+    terrainProportions: [0.0, 1.0, 0.0, 0.0, 0.0]
     # tri mesh only:
-    slopeTreshold: 0.5
+    slopeTreshold: 0.01
 
   baseInitState:
-    pos: [0.0, 0.0, 0.62] # x,y,z [m]
+    pos: [20.0, 20.0, 0.62] # x,y,z [m]
     rot: [0.0, 0.0, 0.0, 1.0] # x,y,z,w [quat]
     vLinear: [0.0, 0.0, 0.0]  # x,y,z [m/s]
     vAngular: [0.0, 0.0, 0.0]  # x,y,z [rad/s]
@@ -123,7 +124,7 @@ env:
     #randomization
     randomizeFriction: true
     frictionRange: [0.5, 1.25]
-    pushRobots: true
+    pushRobots: false
     pushInterval_s: 15
 
     # episode length in seconds
@@ -161,3 +162,4 @@ sim:
 
 task:
   randomize: False
+
