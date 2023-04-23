@@ -18,8 +18,8 @@ env:
     yaw_rate: [-1., 1.]
 
   specifiedCommandVelocityN:
-    linear_x: 5
-    linear_y: 5
+    linear_x: 4
+    linear_y: 4
     yaw_rate: 5
 
   
@@ -112,7 +112,7 @@ env:
     heightMeasurementScale: 5.0
 
     # noise 
-    addNoise: true
+    addNoise: false
     noiseLevel: 1.0 # scales other values
     dofPositionNoise: 0.01
     dofVelocityNoise: 1.5

@@ -110,6 +110,7 @@ class AnymalTerrain(VecTask):
         self.dt = self.decimation * self.cfg["sim"]["dt"]
         self.max_episode_length_s = self.cfg["env"]["learn"]["episodeLength_s"] 
         self.max_episode_length = int(self.max_episode_length_s/ self.dt + 0.5)
+        self.push_robots_flag = self.cfg["env"]["learn"]["pushRobots"]
         self.push_interval = int(self.cfg["env"]["learn"]["pushInterval_s"] / self.dt + 0.5)
         self.allow_knee_contacts = self.cfg["env"]["learn"]["allowKneeContacts"]
         self.Kp = self.cfg["env"]["control"]["stiffness"]
@@ -485,7 +486,7 @@ class AnymalTerrain(VecTask):
         self.progress_buf += 1
         self.randomize_buf += 1
         self.common_step_counter += 1
-        if self.common_step_counter % self.push_interval == 0:
+        if self.push_robots_flag and self.common_step_counter % self.push_interval == 0:
             self.push_robots()
 
         # prepare quantities

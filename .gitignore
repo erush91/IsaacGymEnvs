@@ -33,3 +33,4 @@ outputs/
 /isaacgymenvs/wandb
 *.csv
 *.json
+*.parquet
