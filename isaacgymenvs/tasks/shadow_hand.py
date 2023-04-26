@@ -481,6 +481,13 @@ class ShadowHand(VecTask):
             self.obs_buf[:, 15:18] = self.object_pose[:, 0:3]
             self.obs_buf[:, 18:22] = quat_mul(self.object_rot, quat_conjugate(self.goal_rot))
 
+            # self.obs_buf[:, 18:22] = self.goal_rot
+            # self.obs_buf[:, 18:22] = torch.Tensor([ 0.7071068, 0,         0,         0.7071068 ]) # roll +90
+            # self.obs_buf[:, 18:22] = torch.Tensor([-0.7071068, 0,         0,         0.7071068 ]) # roll -90
+            # self.obs_buf[:, 18:22] = torch.Tensor([ 0,         0.7071068, 0,         0.7071068 ]) # pitch +90
+            # self.obs_buf[:, 18:22] = torch.Tensor([ 0,        -0.7071068, 0,         0.7071068 ]) # pitch -90
+            # self.obs_buf[:, 18:22] = torch.Tensor([ 0,         0,         0.7071068, 0.7071068 ]) # yaw +90
+            # self.obs_buf[:, 18:22] = torch.Tensor([ 0,         0,        -0.7071068, 0.7071068 ]) # yaw -90
             self.obs_buf[:, 22:42] = self.actions
         else:
             # 13*self.num_fingertips = 65
