@@ -1,7 +1,7 @@
 # specifies what the config is when running `ShadowHandOpenAI` in LSTM mode
 
 defaults:
-  - ShadowHandOpenAI_FF_NeuroRL_exp
+  - ShadowHandOpenAI_FF_NeuroRL_train
   - _self_
 
 env:

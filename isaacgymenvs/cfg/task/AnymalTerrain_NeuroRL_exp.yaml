@@ -20,7 +20,7 @@ env:
   specifiedCommandVelocityN:
     linear_x: 4
     linear_y: 4
-    yaw_rate: 5
+    yaw_rate: 1
 
   
   terrain:
@@ -113,13 +113,13 @@ env:
 
     # noise 
     addNoise: false
-    noiseLevel: 1.0 # scales other values
-    dofPositionNoise: 0.01
-    dofVelocityNoise: 1.5
-    linearVelocityNoise: 0.1
-    angularVelocityNoise: 0.2
-    gravityNoise: 0.05
-    heightMeasurementNoise: 0.06
+    noiseLevel: 0. # scales other values
+    dofPositionNoise: 0.
+    dofVelocityNoise: 0.
+    linearVelocityNoise: 0.
+    angularVelocityNoise: 0.
+    gravityNoise: 0.
+    heightMeasurementNoise: 0.
 
     #randomization
     randomizeFriction: true

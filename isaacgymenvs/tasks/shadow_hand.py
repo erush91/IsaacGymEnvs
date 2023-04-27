@@ -517,7 +517,7 @@ class ShadowHand(VecTask):
                 self.obs_buf[no_r_exp:no_r_exp+no_p_exp, 18:22] = pp
                 self.obs_buf[no_r_exp+no_p_exp:no_r_exp+no_p_exp+no_y_exp, 18:22] = yy
 
-            self.obs_buf[:, 22:42] = self.actions
+            self.obs_buf[:, 22:42] = self.actions * 0.0000000001
         else:
             # 13*self.num_fingertips = 65
             self.obs_buf[:, 0:65] = self.fingertip_state.reshape(self.num_envs, 65)
