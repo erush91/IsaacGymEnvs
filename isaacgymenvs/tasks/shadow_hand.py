@@ -44,6 +44,19 @@ class ShadowHand(VecTask):
 
         self.cfg = cfg
 
+        # neuro-rl experiment
+        self.neuro_rl = self.cfg["env"]["neuroRL"]
+
+        # specified command velocity: ranges
+        self.specified_command_roll_range = self.cfg["env"]["specifiedCommandAngleRanges"]["roll"]
+        self.specified_command_pitch_range = self.cfg["env"]["specifiedCommandAngleRanges"]["pitch"]
+        self.specified_command_yaw_range = self.cfg["env"]["specifiedCommandAngleRanges"]["yaw"]
+
+        # specified command velocity: number of experiments
+        self.specified_command_roll_no = self.cfg["env"]["specifiedCommandAngleN"]["roll"]
+        self.specified_command_pitch_no = self.cfg["env"]["specifiedCommandAngleN"]["pitch"]
+        self.specified_command_yaw_no = self.cfg["env"]["specifiedCommandAngleN"]["yaw"]
+
         self.randomize = self.cfg["task"]["randomize"]
         self.randomization_params = self.cfg["task"]["randomization_params"]
         self.aggregate_mode = self.cfg["env"]["aggregateMode"]
@@ -481,13 +494,29 @@ class ShadowHand(VecTask):
             self.obs_buf[:, 15:18] = self.object_pose[:, 0:3]
             self.obs_buf[:, 18:22] = quat_mul(self.object_rot, quat_conjugate(self.goal_rot))
 
-            # self.obs_buf[:, 18:22] = self.goal_rot
-            # self.obs_buf[:, 18:22] = torch.Tensor([ 0.7071068, 0,         0,         0.7071068 ]) # roll +90
-            # self.obs_buf[:, 18:22] = torch.Tensor([-0.7071068, 0,         0,         0.7071068 ]) # roll -90
-            # self.obs_buf[:, 18:22] = torch.Tensor([ 0,         0.7071068, 0,         0.7071068 ]) # pitch +90
-            # self.obs_buf[:, 18:22] = torch.Tensor([ 0,        -0.7071068, 0,         0.7071068 ]) # pitch -90
-            # self.obs_buf[:, 18:22] = torch.Tensor([ 0,         0,         0.7071068, 0.7071068 ]) # yaw +90
-            # self.obs_buf[:, 18:22] = torch.Tensor([ 0,         0,        -0.7071068, 0.7071068 ]) # yaw -90
+            # Override quaternion error command with a specified constant command (goes into a2c_network)!
+            if self.neuro_rl:
+                no_r_exp = self.specified_command_roll_no
+                no_p_exp = self.specified_command_pitch_no
+                no_y_exp = self.specified_command_yaw_no
+
+                r = torch.linspace(self.specified_command_roll_range[0] / 180. * np.pi, self.specified_command_roll_range[1] / 180. * np.pi, self.specified_command_roll_no, device=self.device)
+                p = torch.linspace(self.specified_command_pitch_range[0] / 180. * np.pi, self.specified_command_pitch_range[1] / 180. * np.pi, self.specified_command_pitch_no, device=self.device)
+                y = torch.linspace(self.specified_command_yaw_range[0] / 180. * np.pi, self.specified_command_yaw_range[1] / 180. * np.pi, self.specified_command_yaw_no, device=self.device)
+                rr = torch.zeros(no_r_exp,4)
+                pp = torch.zeros(no_p_exp,4)
+                yy = torch.zeros(no_y_exp,4)
+                for idx, row in enumerate(rr):
+                    rr[idx,:] = quat_from_angle_axis(r[idx], to_torch([1,0,0], dtype=torch.float, device=self.device))
+                for idx, row in enumerate(pp):
+                    pp[idx,:] = quat_from_angle_axis(p[idx], to_torch([0,1,0], dtype=torch.float, device=self.device))
+                for idx, row in enumerate(yy):
+                    yy[idx,:] = quat_from_angle_axis(y[idx], to_torch([0,0,1], dtype=torch.float, device=self.device))
+
+                self.obs_buf[:no_r_exp, 18:22] = rr
+                self.obs_buf[no_r_exp:no_r_exp+no_p_exp, 18:22] = pp
+                self.obs_buf[no_r_exp+no_p_exp:no_r_exp+no_p_exp+no_y_exp, 18:22] = yy
+
             self.obs_buf[:, 22:42] = self.actions
         else:
             # 13*self.num_fingertips = 65
@@ -570,7 +599,6 @@ class ShadowHand(VecTask):
             self.obs_buf[:, obj_obs_start:obj_obs_start + 7] = self.object_pose
             self.obs_buf[:, obj_obs_start + 7:obj_obs_start + 10] = self.object_linvel
             self.obs_buf[:, obj_obs_start + 10:obj_obs_start + 13] = self.vel_obs_scale * self.object_angvel
-
             goal_obs_start = obj_obs_start + 13  # 85
             self.obs_buf[:, goal_obs_start:goal_obs_start + 7] = self.goal_pose
             self.obs_buf[:, goal_obs_start + 7:goal_obs_start + 11] = quat_mul(self.object_rot, quat_conjugate(self.goal_rot))
@@ -633,6 +661,10 @@ class ShadowHand(VecTask):
             rand_angle_y = torch.tensor(0.3)
             new_object_rot = randomize_rotation_pen(rand_floats[:, 3], rand_floats[:, 4], rand_angle_y,
                                                     self.x_unit_tensor[env_ids], self.y_unit_tensor[env_ids], self.z_unit_tensor[env_ids])
+
+        # Override starting orientation of block to be same across agents (not random)!
+        if self.neuro_rl:
+            new_object_rot = quat_from_angle_axis(to_torch([0.0]), to_torch([1,0,0], dtype=torch.float, device=self.device))
 
         self.root_state_tensor[self.object_indices[env_ids], 3:7] = new_object_rot
         self.root_state_tensor[self.object_indices[env_ids], 7:13] = torch.zeros_like(self.root_state_tensor[self.object_indices[env_ids], 7:13])
