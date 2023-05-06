@@ -399,6 +399,9 @@ class AnymalTerrain(VecTask):
         self.episode_sums["base_height"] += rew_base_height
         self.episode_sums["hip"] += rew_hip
 
+    def compute_info(self):
+        self.extras['info'] = self.contact_forces[:, self.feet_indices, 2]
+
     def reset_idx(self, env_ids):
         positions_offset = torch_rand_float(0.5, 1.5, (len(env_ids), self.num_dof), device=self.device)
         velocities = torch_rand_float(-0.1, 0.1, (len(env_ids), self.num_dof), device=self.device)
@@ -502,6 +505,7 @@ class AnymalTerrain(VecTask):
         # compute observations, rewards, resets, ...
         self.check_termination()
         self.compute_reward()
+        self.compute_info()
         env_ids = self.reset_buf.nonzero(as_tuple=False).flatten()
         if len(env_ids) > 0:
             self.reset_idx(env_ids)
