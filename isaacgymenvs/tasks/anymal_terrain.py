@@ -88,6 +88,8 @@ class AnymalTerrain(VecTask):
         self.specified_command_x_no = self.cfg["env"]["specifiedCommandVelocityN"]["linear_x"]
         self.specified_command_y_no = self.cfg["env"]["specifiedCommandVelocityN"]["linear_y"]
         self.specified_command_yawrate_no = self.cfg["env"]["specifiedCommandVelocityN"]["yaw_rate"]
+        self.specified_command_no_copies = self.cfg["env"]["specifiedCommandVelocityN"]["n_copies"]
+        
 
 
         #command ranges
@@ -428,14 +430,14 @@ class AnymalTerrain(VecTask):
                                               gymtorch.unwrap_tensor(env_ids_int32), len(env_ids_int32))
 
         if self.neuro_rl:
-            no_exp = self.specified_command_x_no * self.specified_command_y_no * self.specified_command_yawrate_no 
+            no_exp = self.specified_command_x_no * self.specified_command_y_no * self.specified_command_yawrate_no * self.specified_command_no_copies
             u = torch.linspace(self.specified_command_x_range[0], self.specified_command_x_range[1], self.specified_command_x_no, device=self.device).squeeze()
             v = torch.linspace(self.specified_command_y_range[0], self.specified_command_y_range[1], self.specified_command_y_no, device=self.device).squeeze()
             r = torch.linspace(self.specified_command_yawrate_range[0], self.specified_command_yawrate_range[1], self.specified_command_yawrate_no, device=self.device).squeeze()
             uvr = torch.meshgrid(u, v, r)
-            self.commands[:no_exp, 0] = torch.flatten(uvr[0])
-            self.commands[:no_exp, 1] = torch.flatten(uvr[1])
-            self.commands[:no_exp, 2] = torch.flatten(uvr[2])
+            self.commands[:no_exp, 0] = torch.flatten(uvr[0].repeat(1,self.specified_command_no_copies,1))
+            self.commands[:no_exp, 1] = torch.flatten(uvr[1].repeat(1,self.specified_command_no_copies,1))
+            self.commands[:no_exp, 2] = torch.flatten(uvr[2].repeat(1,self.specified_command_no_copies,1))
         else:
             self.commands[env_ids, 0] = torch_rand_float(self.command_x_range[0], self.command_x_range[1], (len(env_ids), 1), device=self.device).squeeze()
             self.commands[env_ids, 1] = torch_rand_float(self.command_y_range[0], self.command_y_range[1], (len(env_ids), 1), device=self.device).squeeze()
