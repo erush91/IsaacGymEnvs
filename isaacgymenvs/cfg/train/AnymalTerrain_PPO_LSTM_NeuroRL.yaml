@@ -72,10 +72,11 @@ params:
     mini_epochs: 4
     critic_coef: 2
     clip_value: False
-    seq_len: 24 # only for rnn
+    # seq_length: 8 # only for rnn
+    seq_len: 4 # only for rnn
     bounds_loss_coef: 0.001
 
-    max_epochs: ${resolve_default:3000,${....max_iterations}}
+    max_epochs: ${resolve_default:24000,${....max_iterations}}
     save_best_after: 100
     score_to_win: 20000
     save_frequency: 50

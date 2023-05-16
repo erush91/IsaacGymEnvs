@@ -22,7 +22,7 @@ params:
         fixed_sigma: True
 
     mlp:
-      units: [400, 400, 200, 100]
+      units: [512, 256, 128]
       activation: elu
       d2rl: False
 
@@ -85,7 +85,7 @@ params:
         name: actor_critic
         central_value: True
         mlp:
-          units: [512, 512, 256, 128]
+          units: [512, 256, 128]
           activation: elu
           d2rl: False
           initializer:

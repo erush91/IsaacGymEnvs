@@ -21,6 +21,7 @@ env:
     linear_x: 3
     linear_y: 1
     yaw_rate: 1
+    n_copies: 1
 
   terrain:
     terrainType: trimesh # none, plane, or trimesh
@@ -110,7 +111,7 @@ env:
     dofVelocityScale: 0.05
     heightMeasurementScale: 5.0
 
-    # noise 
+    # noise
     addNoise: true
     noiseLevel: 1.0 # scales other values
     dofPositionNoise: 0.01
