@@ -8,14 +8,14 @@ env:
   numEnvs: ${resolve_default:16384,${...num_envs}}
   envSpacing: 0.75
   episodeLength: 160 # Not used, but would be 8 sec if resetTime is not set
-  resetTime: 80 # Max time till reset, in seconds, if a goal wasn't achieved. Will overwrite the episodeLength if is > 0.
+  resetTime: 50.1 # Max time till reset, in seconds, if a goal wasn't achieved. Will overwrite the episodeLength if is > 0.
   enableDebugVis: False
   aggregateMode: 1
 
   neuroRL: true
 
   specifiedCommandAngleRanges:
-    roll: [-90., 90.]
+    roll: [90., 90.]
     pitch: [0., 0.]
     yaw: [0., 0.]
 
@@ -76,26 +76,26 @@ env:
   enableCameraSensors: False
 
 task:
-  randomize: False
+  randomize: True
   randomization_params:
     frequency: 720   # Define how many simulation steps between generating new randomizations
     observations:
       range: [0., 0.] # range for the white noise
-      range_correlated: [0, .001 ] # range for correlated noise, refreshed with freq `frequency`
+      range_correlated: [0, .0 ] # range for correlated noise, refreshed with freq `frequency`
       operation: "additive"
       distribution: "gaussian"
       # schedule: "linear"   # "constant" is to turn on noise after `schedule_steps` num steps
       # schedule_steps: 40000
     actions:
       range: [0., 0.]
-      range_correlated: [0, .015] # range for correlated noise, refreshed with freq `frequency`
+      range_correlated: [0, .0] # range for correlated noise, refreshed with freq `frequency`
       operation: "additive"
       distribution: "gaussian"
       # schedule: "linear"  # "linear" will linearly interpolate between no rand and max rand
       # schedule_steps: 40000
     sim_params: 
       gravity:
-        range: [0, 0.]
+        range: [0., 0.]
         operation: "additive"
         distribution: "gaussian"
         # schedule: "linear"  # "linear" will linearly interpolate between no rand and max rand
@@ -105,45 +105,45 @@ task:
         color: True
         tendon_properties:
           damping:
-            range: [0., 0.]
+            range: [1., 1.]
             operation: "scaling"
             distribution: "loguniform"
             # schedule: "linear"  # "linear" will scale the current random sample by `min(current num steps, schedule_steps) / schedule_steps`
             # schedule_steps: 30000
           stiffness:
-            range: [0., 0.]
+            range: [1., 1.]
             operation: "scaling"
             distribution: "loguniform"
             # schedule: "linear"  # "linear" will scale the current random sample by `min(current num steps, schedule_steps) / schedule_steps`
             # schedule_steps: 30000
         dof_properties:
           damping: 
-            range: [0., 0.]
+            range: [1., 1.]
             operation: "scaling"
             distribution: "loguniform"
             # schedule: "linear"  # "linear" will scale the current random sample by `min(current num steps, schedule_steps) / schedule_steps`
             # schedule_steps: 30000
           stiffness: 
-            range: [0., 0.]
+            range: [1., 1.]
             operation: "scaling"
             distribution: "loguniform"
             # schedule: "linear"  # "linear" will scale the current random sample by `min(current num steps, schedule_steps) / schedule_steps`
             # schedule_steps: 30000
           lower:
-            range: [0, 0.]
+            range: [0., 0.]
             operation: "additive"
             distribution: "gaussian"
             # schedule: "linear"  # "linear" will scale the current random sample by `min(current num steps, schedule_steps) / schedule_steps`
             # schedule_steps: 30000
           upper:
-            range: [0, 0.]
+            range: [0., 0.]
             operation: "additive"
             distribution: "gaussian"
             # schedule: "linear"  # "linear" will scale the current random sample by `min(current num steps, schedule_steps) / schedule_steps`
             # schedule_steps: 30000
         rigid_body_properties:
           mass: 
-            range: [0., 0.]
+            range: [1., 1.]
             operation: "scaling"
             distribution: "uniform"
             setup_only: True # Property will only be randomized once before simulation is started. See Domain Randomization Documentation for more info.
@@ -152,14 +152,14 @@ task:
         rigid_shape_properties:
           friction: 
             num_buckets: 250
-            range: [0., 0.]
+            range: [1., 1.]
             operation: "scaling"
             distribution: "uniform"
             # schedule: "linear"  # "linear" will scale the current random sample by `min(current num steps, schedule_steps) / schedule_steps`
             # schedule_steps: 30000
       object:
         scale:
-          range: [0., 0.]
+          range: [1., 1.]
           operation: "scaling"
           distribution: "uniform"
           setup_only: True # Property will only be randomized once before simulation is started. See Domain Randomization Documentation for more info.
@@ -167,7 +167,7 @@ task:
           # schedule_steps: 30000
         rigid_body_properties:
           mass: 
-            range: [0., 0.]
+            range: [0.5, 2.]
             operation: "scaling"
             distribution: "uniform"
             setup_only: True # Property will only be randomized once before simulation is started. See Domain Randomization Documentation for more info.
@@ -176,7 +176,7 @@ task:
         rigid_shape_properties:
           friction:
             num_buckets: 250
-            range: [0., 0.]
+            range: [1., 1.]
             operation: "scaling"
             distribution: "uniform"
             # schedule: "linear"  # "linear" will scale the current random sample by `min(current num steps, schedule_steps) / schedule_steps`

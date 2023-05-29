@@ -13,15 +13,15 @@ env:
   neuroRL: true
 
   specifiedCommandVelocityRanges:
-    linear_x: [1, 1.]
+    linear_x: [0.4, 1.]
     linear_y: [0., 0.]
     yaw_rate: [0., 0.]
 
   specifiedCommandVelocityN:
-    linear_x: 1
+    linear_x: 7
     linear_y: 1
     yaw_rate: 1
-    n_copies: 1
+    n_copies: 100
 
 
   
@@ -137,7 +137,7 @@ env:
     frictionRange: [0.5, 1.25]
     pushRobots: false
     pushInterval_s: 5
-    perturb: true
+    perturb: false
 
     # episode length in seconds
     episodeLength_s: 20
