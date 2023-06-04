@@ -13,12 +13,12 @@ env:
   neuroRL: true
 
   specifiedCommandVelocityRanges:
-    linear_x: [0.4, 1.]
+    linear_x: [1., 1.]
     linear_y: [0., 0.]
     yaw_rate: [0., 0.]
 
   specifiedCommandVelocityN:
-    linear_x: 7
+    linear_x: 1
     linear_y: 1
     yaw_rate: 1
     n_copies: 100
@@ -114,22 +114,22 @@ env:
     heightMeasurementScale: 5.0
 
     # noise 
-    # addNoise: false
-    # noiseLevel: 0. # scales other values
-    # dofPositionNoise: 0.
-    # dofVelocityNoise: 0.
-    # linearVelocityNoise: 0.
-    # angularVelocityNoise: 0.
-    # gravityNoise: 0.
-    # heightMeasurementNoise: 0.
-    addNoise: true
-    noiseLevel: 1.0 # scales other values
-    dofPositionNoise: 0.01
-    dofVelocityNoise: 1.5
-    linearVelocityNoise: 0.1
-    angularVelocityNoise: 0.2
-    gravityNoise: 0.05
-    heightMeasurementNoise: 0.06
+    addNoise: false
+    noiseLevel: 0. # scales other values
+    dofPositionNoise: 0.
+    dofVelocityNoise: 0.
+    linearVelocityNoise: 0.
+    angularVelocityNoise: 0.
+    gravityNoise: 0.
+    heightMeasurementNoise: 0.
+    # addNoise: true
+    # noiseLevel: 1.0 # scales other values
+    # dofPositionNoise: 0.01
+    # dofVelocityNoise: 1.5
+    # linearVelocityNoise: 0.1
+    # angularVelocityNoise: 0.2
+    # gravityNoise: 0.05
+    # heightMeasurementNoise: 0.06
 
 
     #randomization
@@ -137,7 +137,10 @@ env:
     frictionRange: [0.5, 1.25]
     pushRobots: false
     pushInterval_s: 5
-    perturb: false
+    perturbRandom: false
+    perturbPrescribed: true
+    perturbPrescribedLength_s: 0.25
+    perturbPrescribedInterval_s: 5
 
     # episode length in seconds
     episodeLength_s: 20

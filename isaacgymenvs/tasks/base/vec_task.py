@@ -551,12 +551,28 @@ class VecTask(Env):
                             highs.append(lo_hi[1])
         return params, names, lows, highs
 
-    def apply_perturbations(self):
-        """Apply perturbation to agent.
+    def apply_prescribed_perturbations(self):
 
-        Args:
-            dr_params: parameters for domain randomization to use.
-        """
+        self.f_perturb = torch.zeros((self.num_envs, self.num_bodies, 3), device=self.device, dtype=torch.float)
+        self.t_perturb = torch.zeros((self.num_envs, self.num_bodies, 3), device=self.device, dtype=torch.float)
+        self.f_perturb[:,0,0] = 0
+        self.f_perturb[:,0,1] = -1500
+        self.f_perturb[:,0,2] = 0
+        self.t_perturb[:,0,0] = 0
+        self.t_perturb[:,0,1] = 0
+        self.t_perturb[:,0,2] = 0
+
+        self.gym.apply_rigid_body_force_tensors(self.sim, gymtorch.unwrap_tensor(self.f_perturb), gymtorch.unwrap_tensor(self.t_perturb), gymapi.ENV_SPACE)
+
+        return self.f_perturb
+        # TO DO: Apply forces to different body parts, not just center of mass (rigid body)!
+
+        # TO DO: Add visualization to Isaac Gym viewer
+        # https://forums.developer.nvidia.com/t/visualize-tensors-in-gym-viewer/203027
+        # https://forums.developer.nvidia.com/t/clear-lines-and-wireframespheregeometry/185317
+        # https://forums.developer.nvidia.com/t/rigid-body-states-of-shadowhands-fingers/170058
+
+    def apply_random_perturbations(self):
 
         # CONSTANT PERTURBATION
         # self.perturbation = True
@@ -569,7 +585,7 @@ class VecTask(Env):
         # existing perturbation?
         if self.perturbation:
             # continue existing perturbation
-            if random.random() < 0.9:
+            if random.random() < 0.98:
                 self.perturbation = True
                 self.f_perturb = self.f_perturb
                 self.t_perturb = self.t_perturb
@@ -583,12 +599,12 @@ class VecTask(Env):
             # create new perturbation
             if random.random() < 0.01:
                 self.perturbation = True
-                self.f_perturb[:,0,0] = random.uniform(-150,150)
-                self.f_perturb[:,0,1] = random.uniform(-150,150)
-                self.f_perturb[:,0,2] = random.uniform(-150,150)
-                self.t_perturb[:,0,0] = random.uniform(-300,300)
-                self.t_perturb[:,0,1] = random.uniform(-300,300)
-                self.t_perturb[:,0,2] = random.uniform(-300,300)
+                self.f_perturb[:,0,0] = random.uniform(-500,500) #1500
+                self.f_perturb[:,0,1] = random.uniform(-500,500) #1500
+                self.f_perturb[:,0,2] = random.uniform(-500,500) #1500
+                # self.t_perturb[:,0,0] = random.uniform(-300,300)
+                # self.t_perturb[:,0,1] = random.uniform(-300,300)
+                # self.t_perturb[:,0,2] = random.uniform(-300,300)
             # don't create new perturbation
             else:
                 self.perturbation = False

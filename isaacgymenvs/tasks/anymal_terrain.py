@@ -113,7 +113,10 @@ class AnymalTerrain(VecTask):
         self.max_episode_length_s = self.cfg["env"]["learn"]["episodeLength_s"] 
         self.max_episode_length = int(self.max_episode_length_s/ self.dt + 0.5)
         self.push_robots_flag = self.cfg["env"]["learn"]["pushRobots"]
-        self.perturb = self.cfg["env"]["learn"]["perturb"]
+        self.perturb_random = self.cfg["env"]["learn"]["perturbRandom"]
+        self.perturb_prescribed = self.cfg["env"]["learn"]["perturbPrescribed"]
+        self.perturb_start = int(self.cfg["env"]["learn"]["perturbPrescribedInterval_s"] / self.dt + 0.5)
+        self.perturb_stop = int(self.perturb_start + self.cfg["env"]["learn"]["perturbPrescribedLength_s"] / self.dt + 0.5)
         self.push_interval = int(self.cfg["env"]["learn"]["pushInterval_s"] / self.dt + 0.5)
         self.allow_knee_contacts = self.cfg["env"]["learn"]["allowKneeContacts"]
         self.Kp = self.cfg["env"]["control"]["stiffness"]
@@ -484,29 +487,33 @@ class AnymalTerrain(VecTask):
                 self.gym.fetch_results(self.sim, True)
             self.gym.refresh_dof_state_tensor(self.sim)
 
-        if self.perturb:
-            f_perturb = self.apply_perturbations()
+        if self.perturb_random:
+            f_perturb = self.apply_random_perturbations()
             f_perturb1 = f_perturb[0,0,:].cpu().detach().numpy()
 
-            if self.force_render:
-                pos_x = self.root_states[0,0]
-                pos_y = self.root_states[0,1]
-                pos_z = self.root_states[0,2]
-                pos = gymapi.Transform(gymapi.Vec3(pos_x, pos_y, pos_z), r=None)
+        if self.perturb_prescribed and (self.perturb_start < self.common_step_counter < self.perturb_stop):
+            f_perturb = self.apply_prescribed_perturbations()
+            f_perturb1 = f_perturb[0,0,:].cpu().detach().numpy()
 
-                # Draw force vector base
-                sphere = gymutil.WireframeSphereGeometry(0.02, 4, 4, None, color=(1, 1, 0))
-                gymutil.draw_lines(sphere, self.gym, self.viewer, self.envs[0], pos)
+        if self.force_render and (self.perturb_random or (self.perturb_prescribed and (self.perturb_start < self.common_step_counter < self.perturb_stop))):
+            pos_x = self.root_states[0,0]
+            pos_y = self.root_states[0,1]
+            pos_z = self.root_states[0,2]
+            pos = gymapi.Transform(gymapi.Vec3(pos_x, pos_y, pos_z), r=None)
 
-                # Draw force vector lines
-                self.gym.add_lines(self.viewer, self.envs[0], 1, [pos_x.cpu().numpy(),
-                                                                pos_y.cpu().numpy(),
-                                                                pos_z.cpu().numpy(),
-                                                                pos_x.cpu().numpy() + 0.1 * f_perturb1[0],
-                                                                pos_y.cpu().numpy() + 0.1 * f_perturb1[1],
-                                                                pos_z.cpu().numpy() + 0.1 * f_perturb1[2],
-                                                                ], [1, 0, 0])
+            # Draw force vector base
+            sphere = gymutil.WireframeSphereGeometry(0.02, 4, 4, None, color=(1, 1, 0))
+            gymutil.draw_lines(sphere, self.gym, self.viewer, self.envs[0], pos)
 
+            # Draw force vector lines
+            self.gym.add_lines(self.viewer, self.envs[0], 1, [pos_x.cpu().numpy(),
+                                                            pos_y.cpu().numpy(),
+                                                            pos_z.cpu().numpy(),
+                                                            pos_x.cpu().numpy() + 0.1 * f_perturb1[0],
+                                                            pos_y.cpu().numpy() + 0.1 * f_perturb1[1],
+                                                            pos_z.cpu().numpy() + 0.1 * f_perturb1[2],
+                                                            ], [1, 0, 0])
+        
 
     def post_physics_step(self):
         # self.gym.refresh_dof_state_tensor(self.sim) # done in step
