@@ -83,4 +83,4 @@ params:
     print_stats: True
     player:
       export_data: True
-      games_num: 100
+      games_num: 1

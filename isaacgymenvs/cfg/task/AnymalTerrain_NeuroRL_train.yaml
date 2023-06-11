@@ -134,7 +134,7 @@ env:
     frictionRange: [0.5, 1.25]
     pushRobots: false
     pushInterval_s: 5
-    perturbRandom: false
+    perturbRandom: true
     perturbPrescribed: false
     perturbPrescribedLength_s: 0.25
     perturbPrescribedInterval_s: 5
