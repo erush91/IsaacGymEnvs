@@ -495,7 +495,7 @@ class AnymalTerrain(VecTask):
             f_perturb = self.apply_prescribed_perturbations()
             f_perturb1 = f_perturb[0,0,:].cpu().detach().numpy()
 
-        if self.force_render and (self.perturb_random or (self.perturb_prescribed and (self.perturb_start < self.common_step_counter < self.perturb_stop))):
+        if self.force_render and ((self.perturb_random and f_perturb1[0] > 0) or (self.perturb_prescribed and (self.perturb_start < self.common_step_counter < self.perturb_stop))):
             pos_x = self.root_states[0,0]
             pos_y = self.root_states[0,1]
             pos_z = self.root_states[0,2]
@@ -509,9 +509,9 @@ class AnymalTerrain(VecTask):
             self.gym.add_lines(self.viewer, self.envs[0], 1, [pos_x.cpu().numpy(),
                                                             pos_y.cpu().numpy(),
                                                             pos_z.cpu().numpy(),
-                                                            pos_x.cpu().numpy() + 0.1 * f_perturb1[0],
-                                                            pos_y.cpu().numpy() + 0.1 * f_perturb1[1],
-                                                            pos_z.cpu().numpy() + 0.1 * f_perturb1[2],
+                                                            pos_x.cpu().numpy() + 0.1 * f_perturb1[0] / 100,
+                                                            pos_y.cpu().numpy() + 0.1 * f_perturb1[1] / 100,
+                                                            pos_z.cpu().numpy() + 0.1 * f_perturb1[2] / 100,
                                                             ], [1, 0, 0])
         
 

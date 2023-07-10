@@ -556,7 +556,7 @@ class VecTask(Env):
         self.f_perturb = torch.zeros((self.num_envs, self.num_bodies, 3), device=self.device, dtype=torch.float)
         self.t_perturb = torch.zeros((self.num_envs, self.num_bodies, 3), device=self.device, dtype=torch.float)
         self.f_perturb[:,0,0] = 0
-        self.f_perturb[:,0,1] = -3.0 * 2136.3237
+        self.f_perturb[:,0,1] = -3.5 * 2136.3237
         self.f_perturb[:,0,2] = 0
         self.t_perturb[:,0,0] = 0
         self.t_perturb[:,0,1] = 0

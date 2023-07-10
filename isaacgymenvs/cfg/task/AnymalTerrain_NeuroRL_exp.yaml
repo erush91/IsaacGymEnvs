@@ -21,7 +21,7 @@ env:
     linear_x: 1
     linear_y: 1
     yaw_rate: 1
-    n_copies: 2
+    n_copies: 100
 
 
   
@@ -138,7 +138,7 @@ env:
     pushRobots: false
     pushInterval_s: 5
     perturbRandom: false
-    perturbPrescribed: false
+    perturbPrescribed: true
     perturbPrescribedLength_s: 0.1
     perturbPrescribedInterval_s: 2
 
