@@ -1,5 +1,5 @@
 # used to create the object
-name: AnymalTerrain
+name: A1Terrain
 
 physics_engine: 'physx'
 
@@ -41,7 +41,7 @@ env:
     slopeTreshold: 0.5
 
   baseInitState:
-    pos: [0.0, 0.0, 0.62] # x,y,z [m]
+    pos: [20.0, 20.0, 0.42] # x,y,z [m]
     rot: [0.0, 0.0, 0.0, 1.0] # x,y,z,w [quat]
     vLinear: [0.0, 0.0, 0.0]  # x,y,z [m/s]
     vAngular: [0.0, 0.0, 0.0]  # x,y,z [rad/s]
@@ -54,34 +54,34 @@ env:
 
   control:
     # PD Drive parameters:
-    stiffness: 80.0  # [N*m/rad]
-    damping: 2.0     # [N*m*s/rad]
+    stiffness: 20.0  # [N*m/rad]
+    damping: 0.5     # [N*m*s/rad]
     # action scale: target angle = actionScale * action + defaultAngle
-    actionScale: 0.5
+    actionScale: 0.25
     # decimation: Number of control action updates @ sim DT per policy DT
     decimation: 4
 
   defaultJointAngles:  # = target angles when action = 0.0
-    LF_HAA: 0.03    # [rad]
-    LH_HAA: 0.03    # [rad]
-    RF_HAA: -0.03   # [rad]
-    RH_HAA: -0.03   # [rad]
+    FL_hip_joint:  0.1 # [rad]
+    RL_hip_joint:  0.1 # [rad]
+    FR_hip_joint: -0.1 # [rad]
+    RR_hip_joint: -0.1 # [rad]
 
-    LF_HFE: 0.4     # [rad]
-    LH_HFE: -0.4    # [rad]
-    RF_HFE: 0.4     # [rad]
-    RH_HFE: -0.4    # [rad]
+    FL_thigh_joint: 0.8 # [rad]
+    RL_thigh_joint: 1.0 # [rad]
+    FR_thigh_joint: 0.8 # [rad]
+    RR_thigh_joint: 1.0 # [rad]
 
-    LF_KFE: -0.8    # [rad]
-    LH_KFE: 0.8     # [rad]
-    RF_KFE: -0.8    # [rad]
-    RH_KFE: 0.8     # [rad]
+    FL_calf_joint: -1.5 # [rad]
+    RL_calf_joint: -1.5 # [rad]
+    FR_calf_joint: -1.5 # [rad]
+    RR_calf_joint: -1.5 # [rad]
 
   urdfAsset:
-    file: "urdf/anymal_c/urdf/anymal_minimal.urdf"
-    mass: 53.16426 # [kg]
-    footName: SHANK # SHANK if collapsing fixed joint, FOOT otherwise
-    kneeName: THIGH
+    file: "urdf/a1/urdf/a1.urdf"
+    mass: 12.454 # [kg]
+    footName: foot
+    kneeName: ["thigh", "calf"]
     collapseFixedJoints: True
     fixBaseLink: false
     defaultDofDriveMode: 4 # see GymDofDriveModeFlags (0 is none, 1 is pos tgt, 2 is vel tgt, 4 effort)
@@ -95,7 +95,7 @@ env:
     angularVelocityXYRewardScale: -0.05
     angularVelocityZRewardScale: 0.5
     orientationRewardScale: -0. #-1.
-    torqueRewardScale: -0.00002 # -0.000025
+    torqueRewardScale: -0.0002 # -0.000025
     jointAccRewardScale: -0.0005 # -0.0025
     baseHeightRewardScale: -0.0 #5
     feetAirTimeRewardScale:  1.0
@@ -135,7 +135,7 @@ env:
     frictionRange: [0.5, 1.25]
     pushRobots: false
     pushInterval_s: 5
-    
+        
     perturbRandom:
       perturbRandomOn: true
       forceX: 0.95902417618
@@ -166,9 +166,8 @@ env:
   # viewer cam:
   viewer:
     refEnv: 0
-    pos: [0, 0, 10]  # [m]
+    pos: [20.0, 20.0, 10]  # [m]
     lookat: [1., 1, 9]  # [m]
-
 
   # set to True if you use camera sensors in the environment
   enableCameraSensors: False

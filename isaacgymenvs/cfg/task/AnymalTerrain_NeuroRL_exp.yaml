@@ -21,7 +21,7 @@ env:
     linear_x: 1
     linear_y: 1
     yaw_rate: 1
-    n_copies: 100
+    n_copies: 1
 
 
   
@@ -81,6 +81,7 @@ env:
 
   urdfAsset:
     file: "urdf/anymal_c/urdf/anymal_minimal.urdf"
+    mass: 53.16426 # [kg]
     footName: SHANK # SHANK if collapsing fixed joint, FOOT otherwise
     kneeName: THIGH
     collapseFixedJoints: True
@@ -131,19 +132,38 @@ env:
     # gravityNoise: 0.05
     # heightMeasurementNoise: 0.06
 
-
     #randomization
-    randomizeFriction: false
+    randomizeFriction: true
     frictionRange: [0.5, 1.25]
     pushRobots: false
     pushInterval_s: 5
-    perturbRandom: false
-    perturbPrescribed: true
-    perturbPrescribedLength_s: 0.1
-    perturbPrescribedInterval_s: 2
-
+    
+    perturbRandom:
+      perturbRandomOn: false
+      forceX: 0.95902417618
+      forceY: 0.95902417618
+      forceZ: 0.95902417618
+      torqueX: 0
+      torqueY: 0
+      torqueZ: 0
+      probabilityStart: 0.01
+      probabilityEnd: 0.98
+      
     # episode length in seconds
     episodeLength_s: 20.02
+
+  evaluate:
+    perturbPrescribed:
+      perturbPrescribedOn: true
+      length_s: 0.1
+      interval_s: 2
+      forceX: 0 # multiple of body weight: F = (X * 9.80665 * mass [kg])
+      forceY: -14.3415025352 # multiple of body weight: F = (X * 9.80665 * mass [kg])
+      forceZ: 0 # multiple of body weight: F = (X * 9.80665 * mass [kg])
+      torqueX: 0
+      torqueY: 0
+      torqueZ: 0
+
 
   # viewer cam:
   viewer:

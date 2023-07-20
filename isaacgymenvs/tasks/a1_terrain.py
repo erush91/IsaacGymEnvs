@@ -40,7 +40,7 @@ from typing import Tuple, Dict
 from isaacgymenvs.tasks.base.vec_task import VecTask
 
 
-class AnymalTerrain(VecTask):
+class A1Terrain(VecTask):
 
     def __init__(self, cfg, rl_device, sim_device, graphics_device_id, headless, virtual_screen_capture, force_render):
 
@@ -137,6 +137,7 @@ class AnymalTerrain(VecTask):
         self.Kp = self.cfg["env"]["control"]["stiffness"]
         self.Kd = self.cfg["env"]["control"]["damping"]
         self.curriculum = self.cfg["env"]["terrain"]["curriculum"]
+
 
         for key in self.rew_scales.keys():
             self.rew_scales[key] *= self.dt
@@ -287,7 +288,9 @@ class AnymalTerrain(VecTask):
         knee_name = self.cfg["env"]["urdfAsset"]["kneeName"]
         feet_names = [s for s in body_names if foot_name in s]
         self.feet_indices = torch.zeros(len(feet_names), dtype=torch.long, device=self.device, requires_grad=False)
-        knee_names = [s for s in body_names if knee_name in s]
+        knee_names = []
+        for name in knee_name:
+            knee_names.extend([s for s in body_names if name in s])
         self.knee_indices = torch.zeros(len(knee_names), dtype=torch.long, device=self.device, requires_grad=False)
         self.base_index = 0
 
