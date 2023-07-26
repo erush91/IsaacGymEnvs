@@ -29,6 +29,7 @@ nn/
 runs/
 .idea
 outputs/
+data/
 *.hydra*
 /isaacgymenvs/wandb
 *.csv

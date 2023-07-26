@@ -21,7 +21,7 @@ env:
     linear_x: 1
     linear_y: 1
     yaw_rate: 1
-    n_copies: 1
+    n_copies: 100
 
 
   
