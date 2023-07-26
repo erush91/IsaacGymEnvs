@@ -158,7 +158,7 @@ env:
       length_s: 0.1
       interval_s: 2
       forceX: 0 # multiple of body weight: F = (X * 9.80665 * mass [kg])
-      forceY: -14.3415025352 # multiple of body weight: F = (X * 9.80665 * mass [kg])
+      forceY: -3.5853756338 # multiple of body weight: F = (X * 9.80665 * mass [kg])
       forceZ: 0 # multiple of body weight: F = (X * 9.80665 * mass [kg])
       torqueX: 0
       torqueY: 0
