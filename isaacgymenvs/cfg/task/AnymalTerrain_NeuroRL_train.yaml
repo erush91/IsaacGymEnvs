@@ -130,7 +130,6 @@ env:
     heightMeasurementNoise: 0.06
 
     #randomization
-    randomizeFriction: true
     frictionRange: [0.5, 1.25]
     pushRobots: false
     pushInterval_s: 5
