@@ -555,12 +555,12 @@ class VecTask(Env):
 
         self.f_perturb = torch.zeros((self.num_envs, self.num_bodies, 3), device=self.device, dtype=torch.float)
         self.t_perturb = torch.zeros((self.num_envs, self.num_bodies, 3), device=self.device, dtype=torch.float)
-        self.f_perturb[:,0,0] = 0
-        self.f_perturb[:,0,1] = -3.5 * 2136.3237
-        self.f_perturb[:,0,2] = 0
-        self.t_perturb[:,0,0] = 0
-        self.t_perturb[:,0,1] = 0
-        self.t_perturb[:,0,2] = 0
+        self.f_perturb[:,0,0] = 9.80665 * self.robot_mass * self.perturb_prescribed_force_x
+        self.f_perturb[:,0,1] = 9.80665 * self.robot_mass * self.perturb_prescribed_force_y
+        self.f_perturb[:,0,2] = 9.80665 * self.robot_mass * self.perturb_prescribed_force_z
+        self.t_perturb[:,0,0] = 9.80665 * self.robot_mass * self.perturb_prescribed_torque_x
+        self.t_perturb[:,0,1] = 9.80665 * self.robot_mass * self.perturb_prescribed_torque_y
+        self.t_perturb[:,0,2] = 9.80665 * self.robot_mass * self.perturb_prescribed_torque_z
 
         self.gym.apply_rigid_body_force_tensors(self.sim, gymtorch.unwrap_tensor(self.f_perturb), gymtorch.unwrap_tensor(self.t_perturb), gymapi.ENV_SPACE)
 
@@ -585,7 +585,7 @@ class VecTask(Env):
         # existing perturbation?
         if self.perturbation:
             # continue existing perturbation
-            if random.random() < 0.98:
+            if random.random() < self.perturb_random_prob_end:
                 self.perturbation = True
                 self.f_perturb = self.f_perturb
                 self.t_perturb = self.t_perturb
@@ -597,14 +597,14 @@ class VecTask(Env):
         # no existing perturbation?
         else:
             # create new perturbation
-            if random.random() < 0.01:
+            if random.random() < self.perturb_random_prob_start:
                 self.perturbation = True
-                self.f_perturb[:,0,0] = random.uniform(-500,500) #1500
-                self.f_perturb[:,0,1] = random.uniform(-500,500) #1500
-                self.f_perturb[:,0,2] = random.uniform(-500,500) #1500
-                # self.t_perturb[:,0,0] = random.uniform(-300,300)
-                # self.t_perturb[:,0,1] = random.uniform(-300,300)
-                # self.t_perturb[:,0,2] = random.uniform(-300,300)
+                self.f_perturb[:,0,0] = 9.80665 * self.robot_mass * self.perturb_random_force_x * random.uniform(-1,1) #1500
+                self.f_perturb[:,0,1] = 9.80665 * self.robot_mass * self.perturb_random_force_y * random.uniform(-1,1) #1500
+                self.f_perturb[:,0,2] = 9.80665 * self.robot_mass * self.perturb_random_force_z * random.uniform(-1,1) #1500
+                self.t_perturb[:,0,0] = 9.80665 * self.robot_mass * self.perturb_random_torque_x * random.uniform(-1,1)
+                self.t_perturb[:,0,1] = 9.80665 * self.robot_mass * self.perturb_random_torque_y * random.uniform(-1,1)
+                self.t_perturb[:,0,2] = 9.80665 * self.robot_mass * self.perturb_random_torque_z * random.uniform(-1,1)
             # don't create new perturbation
             else:
                 self.perturbation = False
@@ -854,3 +854,27 @@ class VecTask(Env):
                         raise Exception("Invalid extern_sample size")
 
         self.first_randomization = False
+
+    def close_viewer(self):
+        """Close the viewer."""
+
+        self.gym.destroy_viewer(self.viewer)
+        self.gym.destroy_sim(self.sim)
+
+    def close_sim(self, compute_device: int, graphics_device: int, physics_engine, sim_params: gymapi.SimParams):
+        """Create an Isaac Gym sim object.
+
+        Args:
+            compute_device: ID of compute device to use.
+            graphics_device: ID of graphics device to use.
+            physics_engine: physics engine to use (`gymapi.SIM_PHYSX` or `gymapi.SIM_FLEX`)
+            sim_params: sim params to use.
+        Returns:
+            the Isaac Gym sim object.
+        """
+        sim = _create_sim_once(self.gym, compute_device, graphics_device, physics_engine, sim_params)
+        if sim is None:
+            print("*** Failed to create sim")
+            quit()
+
+        return sim
