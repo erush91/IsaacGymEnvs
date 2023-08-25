@@ -34,3 +34,4 @@ outputs/
 *.csv
 *.json
 *.parquet
+data/

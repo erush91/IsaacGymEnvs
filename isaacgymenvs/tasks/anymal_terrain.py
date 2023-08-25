@@ -497,18 +497,21 @@ class AnymalTerrain(VecTask):
                                  -80., 80.)
             self.gym.set_dof_actuation_force_tensor(self.sim, gymtorch.unwrap_tensor(torques))
             self.torques = torques.view(self.torques.shape)
+
+            if self.perturb_random:
+                f_perturb = self.apply_random_perturbations()
+                f_perturb1 = f_perturb[0,0,:].cpu().detach().numpy()
+
+            if self.perturb_prescribed and (self.perturb_prescribed_start < self.common_step_counter < self.perturb_prescribed_stop):
+                f_perturb = self.apply_prescribed_perturbations()
+                f_perturb1 = f_perturb[0,0,:].cpu().detach().numpy()
+
             self.gym.simulate(self.sim)
+            
             if self.device == 'cpu':
                 self.gym.fetch_results(self.sim, True)
             self.gym.refresh_dof_state_tensor(self.sim)
 
-        if self.perturb_random:
-            f_perturb = self.apply_random_perturbations()
-            f_perturb1 = f_perturb[0,0,:].cpu().detach().numpy()
-
-        if self.perturb_prescribed and (self.perturb_prescribed_start < self.common_step_counter < self.perturb_prescribed_stop):
-            f_perturb = self.apply_prescribed_perturbations()
-            f_perturb1 = f_perturb[0,0,:].cpu().detach().numpy()
 
         if self.force_render and ((self.perturb_random and f_perturb1[0] > 0) or (self.perturb_prescribed and (self.perturb_prescribed_start < self.common_step_counter < self.perturb_prescribed_stop))):
             pos_x = self.root_states[0,0]
