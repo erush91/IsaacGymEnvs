@@ -131,8 +131,10 @@ class AnymalTerrain(VecTask):
         self.perturb_prescribed_torque_x = self.cfg["env"]["evaluate"]["perturbPrescribed"]["torqueX"]
         self.perturb_prescribed_torque_y = self.cfg["env"]["evaluate"]["perturbPrescribed"]["torqueY"]
         self.perturb_prescribed_torque_z = self.cfg["env"]["evaluate"]["perturbPrescribed"]["torqueZ"]
+        self.perturb_prescribed_steps_after_stance_begins = int(self.cfg["env"]["evaluate"]["perturbPrescribed"]["steps_after_stance_begins"])
         self.perturb_prescribed_start = int(self.cfg["env"]["evaluate"]["perturbPrescribed"]["interval_s"] / self.dt + 0.5)
         self.perturb_prescribed_stop = int(self.perturb_prescribed_start + self.cfg["env"]["evaluate"]["perturbPrescribed"]["length_s"] / self.dt + 0.5)
+        self.perturb_prescribed_length = self.perturb_prescribed_stop - self.perturb_prescribed_start
         self.allow_knee_contacts = self.cfg["env"]["learn"]["allowKneeContacts"]
         self.Kp = self.cfg["env"]["control"]["stiffness"]
         self.Kd = self.cfg["env"]["control"]["damping"]
@@ -196,6 +198,15 @@ class AnymalTerrain(VecTask):
 
         self.reset_idx(torch.arange(self.num_envs, device=self.device))
         self.init_done = True
+
+        self.stance = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device, requires_grad=False)
+        self.stance_last = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device, requires_grad=False)
+        self.new_stance = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device, requires_grad=False)
+        self.perturb_idx = 0 * torch.ones(self.num_envs, dtype=torch.float, device=self.device, requires_grad=False)
+        self.gait_idx = 100 * torch.ones(self.num_envs, dtype=torch.float, device=self.device, requires_grad=False)
+        self.apply_prescribed_perturb_start_now = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device, requires_grad=False)
+        self.apply_prescribed_perturb_now = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device, requires_grad=False)
+        self.apply_prescribed_perturb_now_cnt = torch.zeros(self.num_envs, dtype=torch.float, device=self.device, requires_grad=False)
 
     def create_sim(self):
         self.up_axis_idx = 2 # index of up axis: Y=1, Z=2
@@ -421,7 +432,10 @@ class AnymalTerrain(VecTask):
         self.episode_sums["hip"] += rew_hip
 
     def compute_info(self):
-        self.extras['info'] = self.contact_forces[:, self.feet_indices, 2]
+        self.extras['foot_forces'] = self.contact_forces[:, self.feet_indices, 2]
+        self.extras['perturb_begin'] = self.apply_prescribed_perturb_start_now
+        self.extras['perturb'] = self.apply_prescribed_perturb_now
+        self.extras['stance_begin'] = self.new_stance
 
     def reset_idx(self, env_ids):
         positions_offset = torch_rand_float(0.5, 1.5, (len(env_ids), self.num_dof), device=self.device)
@@ -492,45 +506,68 @@ class AnymalTerrain(VecTask):
 
     def pre_physics_step(self, actions):
         self.actions = actions.clone().to(self.device)
+
+        if self.perturb_random:
+            f_perturb = self.apply_random_perturbations()
+            f_perturb1 = f_perturb[0,0,:].cpu().detach().numpy()
+
+        ### Compute when to apply perturbations
+        # is LF foot touching groud (varies by agent)?
+        LF_foot_contact = self.contact_forces[:, 3, 2] > 0
+
+        # is RH foot touching groud (varies by agent)?
+        RH_foot_contact = self.contact_forces[:, 12, 2] > 0
+
+        self.stance = LF_foot_contact * RH_foot_contact
+
+        self.new_stance = ~self.stance_last * self.stance
+        self.gait_idx[self.new_stance] = 0
+
+        # is it past perturb_prescribed_start_time (same for all agents)?
+        if self.perturb_prescribed:
+            self.apply_prescribed_perturb_start_now = (self.common_step_counter >= self.perturb_prescribed_start) * (self.gait_idx == self.perturb_prescribed_steps_after_stance_begins) * (self.perturb_idx == 0)
+
+        self.perturb_idx[self.apply_prescribed_perturb_start_now | (self.perturb_idx > 0)] += 1
+
+        # compute if apply perturbation now (varies by agent)
+        self.apply_prescribed_perturb_now = (self.perturb_idx > 0) & (self.perturb_idx <= self.perturb_prescribed_length)
+
         for i in range(self.decimation):
             torques = torch.clip(self.Kp*(self.action_scale*self.actions + self.default_dof_pos - self.dof_pos) - self.Kd*self.dof_vel,
                                  -80., 80.)
             self.gym.set_dof_actuation_force_tensor(self.sim, gymtorch.unwrap_tensor(torques))
             self.torques = torques.view(self.torques.shape)
 
-            if self.perturb_random:
-                f_perturb = self.apply_random_perturbations()
-                f_perturb1 = f_perturb[0,0,:].cpu().detach().numpy()
-
-            if self.perturb_prescribed and (self.perturb_prescribed_start < self.common_step_counter < self.perturb_prescribed_stop):
+            if self.apply_prescribed_perturb_now.any():
                 f_perturb = self.apply_prescribed_perturbations()
                 f_perturb1 = f_perturb[0,0,:].cpu().detach().numpy()
 
             self.gym.simulate(self.sim)
-            
             if self.device == 'cpu':
                 self.gym.fetch_results(self.sim, True)
             self.gym.refresh_dof_state_tensor(self.sim)
 
+        self.gait_idx += 1
+        self.stance_last = self.stance
 
-        if self.force_render and ((self.perturb_random and f_perturb1[0] > 0) or (self.perturb_prescribed and (self.perturb_prescribed_start < self.common_step_counter < self.perturb_prescribed_stop))):
-            pos_x = self.root_states[0,0]
-            pos_y = self.root_states[0,1]
-            pos_z = self.root_states[0,2]
-            pos = gymapi.Transform(gymapi.Vec3(pos_x, pos_y, pos_z), r=None)
+        # if self.force_render and ((self.perturb_random and f_perturb1[0] > 0) or (self.perturb_prescribed and self.apply_prescribed_perturb_now.any())):
+        #     pos_x = self.root_states[0,0]
+        #     pos_y = self.root_states[0,1]
+        #     pos_z = self.root_states[0,2]
+        #     pos = gymapi.Transform(gymapi.Vec3(pos_x, pos_y, pos_z), r=None)
 
-            # Draw force vector base
-            sphere = gymutil.WireframeSphereGeometry(0.02, 4, 4, None, color=(1, 1, 0))
-            gymutil.draw_lines(sphere, self.gym, self.viewer, self.envs[0], pos)
+        #     # Draw force vector base
+        #     sphere = gymutil.WireframeSphereGeometry(0.02, 4, 4, None, color=(1, 1, 0))
+        #     gymutil.draw_lines(sphere, self.gym, self.viewer, self.envs[0], pos)
 
-            # Draw force vector lines
-            self.gym.add_lines(self.viewer, self.envs[0], 1, [pos_x.cpu().numpy(),
-                                                            pos_y.cpu().numpy(),
-                                                            pos_z.cpu().numpy(),
-                                                            pos_x.cpu().numpy() + 0.1 * f_perturb1[0] / 100,
-                                                            pos_y.cpu().numpy() + 0.1 * f_perturb1[1] / 100,
-                                                            pos_z.cpu().numpy() + 0.1 * f_perturb1[2] / 100,
-                                                            ], [1, 0, 0])
+        #     # Draw force vector lines
+        #     self.gym.add_lines(self.viewer, self.envs[0], 1, [pos_x.cpu().numpy(),
+        #                                                     pos_y.cpu().numpy(),
+        #                                                     pos_z.cpu().numpy(),
+        #                                                     pos_x.cpu().numpy() + 0.1 * f_perturb1[0] / 100,
+        #                                                     pos_y.cpu().numpy() + 0.1 * f_perturb1[1] / 100,
+        #                                                     pos_z.cpu().numpy() + 0.1 * f_perturb1[2] / 100,
+        #                                                     ], [1, 0, 0])
         
 
     def post_physics_step(self):
