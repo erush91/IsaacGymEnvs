@@ -149,7 +149,7 @@ env:
       probabilityEnd: 0.98
       
     # episode length in seconds
-    episodeLength_s: 20.02
+    episodeLength_s: 10.02
 
   evaluate:
     perturbPrescribed:

@@ -205,6 +205,8 @@ class AnymalTerrain(VecTask):
         self.perturb_idx = 0 * torch.ones(self.num_envs, dtype=torch.float, device=self.device, requires_grad=False)
         self.gait_idx = 100 * torch.ones(self.num_envs, dtype=torch.float, device=self.device, requires_grad=False)
         self.apply_prescribed_perturb_start_now = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device, requires_grad=False)
+        self.perturb_started = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device, requires_grad=False)
+        self.perturb_ended = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device, requires_grad=False)
         self.apply_prescribed_perturb_now = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device, requires_grad=False)
         self.apply_prescribed_perturb_now_cnt = torch.zeros(self.num_envs, dtype=torch.float, device=self.device, requires_grad=False)
 
@@ -529,8 +531,11 @@ class AnymalTerrain(VecTask):
 
         self.perturb_idx[self.apply_prescribed_perturb_start_now | (self.perturb_idx > 0)] += 1
 
+        self.perturb_started = (self.perturb_idx > 0)
+        self.perturb_ended = (self.perturb_idx > self.perturb_prescribed_length)
+
         # compute if apply perturbation now (varies by agent)
-        self.apply_prescribed_perturb_now = (self.perturb_idx > 0) & (self.perturb_idx <= self.perturb_prescribed_length)
+        self.apply_prescribed_perturb_now = (self.perturb_started == 1) * (self.perturb_ended == 0)
 
         for i in range(self.decimation):
             torques = torch.clip(self.Kp*(self.action_scale*self.actions + self.default_dof_pos - self.dof_pos) - self.Kd*self.dof_vel,
