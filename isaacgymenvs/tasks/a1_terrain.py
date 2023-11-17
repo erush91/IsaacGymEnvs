@@ -121,15 +121,9 @@ class A1Terrain(VecTask):
         self.perturb_random_force_z = self.cfg["env"]["learn"]["perturbRandom"]["forceZ"]
         self.perturb_random_torque_x = self.cfg["env"]["learn"]["perturbRandom"]["torqueX"]
         self.perturb_random_torque_y = self.cfg["env"]["learn"]["perturbRandom"]["torqueY"]
-<<<<<<< HEAD
-        self.perturb_random_torque_z = self.cfg["env"]["learn"]["perturbRandom"]["torqueZ"]
-        self.perturb_random_prob_start = self.cfg["env"]["evaluate"]["perturbPrescribed"]
-        self.perturb_random_prob_end = self.cfg["env"]["evaluate"]["perturbPrescribed"]
-=======
         self.perturb_random_torque_z = self.cfg["env"]["learn"]["perturbRandom"]["torqueZ"]	
         self.perturb_random_prob_start = self.cfg["env"]["learn"]["perturbRandom"]["probabilityStart"]	
         self.perturb_random_prob_end = self.cfg["env"]["learn"]["perturbRandom"]["probabilityEnd"]
->>>>>>> frontiers
         self.perturb_prescribed = self.cfg["env"]["evaluate"]["perturbPrescribed"]["perturbPrescribedOn"]
         self.perturb_prescribed_force_x = self.cfg["env"]["evaluate"]["perturbPrescribed"]["forceX"]
         self.perturb_prescribed_force_y = self.cfg["env"]["evaluate"]["perturbPrescribed"]["forceY"]
@@ -507,25 +501,12 @@ class A1Terrain(VecTask):
             self.gym.set_dof_actuation_force_tensor(self.sim, gymtorch.unwrap_tensor(torques))
             self.torques = torques.view(self.torques.shape)
 
-<<<<<<< HEAD
-            if self.perturb_prescribed and (self.perturb_prescribed_start < self.common_step_counter < self.perturb_prescribed_stop):
-                f_perturb = self.apply_prescribed_perturbations()
-                f_perturb1 = f_perturb[0,0,:].cpu().detach().numpy()
-
-            if self.perturb_random:
-                f_perturb = self.apply_random_perturbations()
-                f_perturb1 = f_perturb[0,0,:].cpu().detach().numpy()
-
-=======
->>>>>>> frontiers
             self.gym.simulate(self.sim)
             
             if self.device == 'cpu':
                 self.gym.fetch_results(self.sim, True)
             self.gym.refresh_dof_state_tensor(self.sim)
 
-<<<<<<< HEAD
-=======
         if self.perturb_prescribed and (self.perturb_prescribed_start < self.common_step_counter < self.perturb_prescribed_stop):
             f_perturb = self.apply_prescribed_perturbations()
             f_perturb1 = f_perturb[0,0,:].cpu().detach().numpy()
@@ -534,7 +515,6 @@ class A1Terrain(VecTask):
             f_perturb = self.apply_random_perturbations()
             f_perturb1 = f_perturb[0,0,:].cpu().detach().numpy()
 
->>>>>>> frontiers
         if self.force_render and ((self.perturb_random and f_perturb1[0] > 0) or (self.perturb_prescribed and (self.perturb_prescribed_start < self.common_step_counter < self.perturb_prescribed_stop))):
             pos_x = self.root_states[0,0]
             pos_y = self.root_states[0,1]

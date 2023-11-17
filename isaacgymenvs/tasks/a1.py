@@ -91,10 +91,6 @@ class A1(VecTask):
 
         # other
         self.dt = self.sim_params.dt
-<<<<<<< HEAD
-        self.max_episode_length_s = self.cfg["env"]["learn"]["episodeLength_s"]
-        self.max_episode_length = int(self.max_episode_length_s / self.dt + 0.5)
-=======
         # self.max_episode_length_s = self.cfg["env"]["learn"]["episodeLength_s"]
         # self.max_episode_length = int(self.max_episode_length_s / self.dt + 0.5)
 
@@ -124,7 +120,6 @@ class A1(VecTask):
         self.perturb_prescribed_start = int(self.cfg["env"]["evaluate"]["perturbPrescribed"]["interval_s"] / self.dt + 0.5)
         self.perturb_prescribed_stop = int(self.perturb_prescribed_start + self.cfg["env"]["evaluate"]["perturbPrescribed"]["length_s"] / self.dt + 0.5)
 
->>>>>>> frontiers
         self.Kp = self.cfg["env"]["control"]["stiffness"]
         self.Kd = self.cfg["env"]["control"]["damping"]
 
