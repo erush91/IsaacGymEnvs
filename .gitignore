@@ -35,3 +35,4 @@ data/
 *.csv
 *.json
 *.parquet
+data/

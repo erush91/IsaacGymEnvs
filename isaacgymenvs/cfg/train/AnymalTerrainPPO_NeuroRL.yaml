@@ -44,7 +44,7 @@ params:
   load_path: ${...checkpoint} # path to the checkpoint to load
 
   config:
-    name: ${resolve_default:A1Terrain,${....experiment}}
+    name: ${resolve_default:AnymalTerrain,${....experiment}}
     full_experiment_name: ${.name}
     env_name: rlgpu
     ppo: True
@@ -67,22 +67,16 @@ params:
     kl_threshold: 0.008 # target kl for adaptive lr
     truncate_grads: True
     grad_norm: 1.
-<<<<<<< HEAD
-    horizon_length: 24
-=======
     horizon_length: 16
->>>>>>> frontiers
     minibatch_size: 16384
-    mini_epochs: 5
+    mini_epochs: 4
     critic_coef: 2
     clip_value: True
-<<<<<<< HEAD
     seq_len: 4 # only for rnn
-=======
-    seq_length: 16 # only for rnn
-    seq_len: 16 # only for rnn
->>>>>>> frontiers
     bounds_loss_coef: 0.
+    zero_bias_actor_rnn: False
+    zero_action_feedback: True
+
 
     max_epochs: ${resolve_default:25000,${....max_iterations}}
     save_best_after: 100
@@ -91,4 +85,4 @@ params:
     print_stats: True
     player:
       export_data: True
-      games_num: 1
+      games_num: 100

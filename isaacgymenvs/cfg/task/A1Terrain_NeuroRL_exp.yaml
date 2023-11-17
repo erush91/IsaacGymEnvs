@@ -21,7 +21,11 @@ env:
     linear_x: 1
     linear_y: 1
     yaw_rate: 1
+<<<<<<< HEAD
     n_copies: 1
+=======
+    n_copies: 100
+>>>>>>> frontiers
 
 
   
@@ -115,6 +119,7 @@ env:
     heightMeasurementScale: 5.0
 
     # noise 
+<<<<<<< HEAD
     addNoise: false
     noiseLevel: 0. # scales other values
     dofPositionNoise: 0.
@@ -131,6 +136,24 @@ env:
     # angularVelocityNoise: 0.2
     # gravityNoise: 0.05
     # heightMeasurementNoise: 0.06
+=======
+    # addNoise: false
+    # noiseLevel: 0. # scales other values
+    # dofPositionNoise: 0.
+    # dofVelocityNoise: 0.
+    # linearVelocityNoise: 0.
+    # angularVelocityNoise: 0.
+    # gravityNoise: 0.
+    # heightMeasurementNoise: 0.
+    addNoise: true
+    noiseLevel: 1.0 # scales other values
+    dofPositionNoise: 0.01
+    dofVelocityNoise: 1.5
+    linearVelocityNoise: 0.1
+    angularVelocityNoise: 0.2
+    gravityNoise: 0.05
+    heightMeasurementNoise: 0.06
+>>>>>>> frontiers
     
     #randomization
     randomizeFriction: true
@@ -155,7 +178,11 @@ env:
   evaluate:
     perturbPrescribed:
       perturbPrescribedOn: true
+<<<<<<< HEAD
       length_s: 5
+=======
+      length_s: 0.1
+>>>>>>> frontiers
       interval_s: 5
       forceX: 0 # multiple of body weight: F = (X * 9.80665 * mass [kg])
       forceY: -3.5853756338 # multiple of body weight: F = (X * 9.80665 * mass [kg])

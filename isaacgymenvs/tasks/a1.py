@@ -91,8 +91,40 @@ class A1(VecTask):
 
         # other
         self.dt = self.sim_params.dt
+<<<<<<< HEAD
         self.max_episode_length_s = self.cfg["env"]["learn"]["episodeLength_s"]
         self.max_episode_length = int(self.max_episode_length_s / self.dt + 0.5)
+=======
+        # self.max_episode_length_s = self.cfg["env"]["learn"]["episodeLength_s"]
+        # self.max_episode_length = int(self.max_episode_length_s / self.dt + 0.5)
+
+        self.decimation = self.cfg["env"]["control"]["decimation"]
+        self.dt = self.decimation * self.cfg["sim"]["dt"]
+        self.max_episode_length_s = self.cfg["env"]["learn"]["episodeLength_s"] 
+        self.max_episode_length = int(self.max_episode_length_s/ self.dt + 0.5)
+        self.push_robots_flag = self.cfg["env"]["learn"]["pushRobots"]
+        self.push_interval = int(self.cfg["env"]["learn"]["pushInterval_s"] / self.dt + 0.5)
+        self.robot_mass = self.cfg["env"]["urdfAsset"]["mass"]
+        self.perturb_random = self.cfg["env"]["learn"]["perturbRandom"]["perturbRandomOn"]
+        self.perturb_random_force_x = self.cfg["env"]["learn"]["perturbRandom"]["forceX"]
+        self.perturb_random_force_y = self.cfg["env"]["learn"]["perturbRandom"]["forceY"]
+        self.perturb_random_force_z = self.cfg["env"]["learn"]["perturbRandom"]["forceZ"]
+        self.perturb_random_torque_x = self.cfg["env"]["learn"]["perturbRandom"]["torqueX"]
+        self.perturb_random_torque_y = self.cfg["env"]["learn"]["perturbRandom"]["torqueY"]
+        self.perturb_random_torque_z = self.cfg["env"]["learn"]["perturbRandom"]["torqueZ"]
+        self.perturb_random_prob_start = self.cfg["env"]["learn"]["perturbRandom"]["probabilityStart"]
+        self.perturb_random_prob_end = self.cfg["env"]["learn"]["perturbRandom"]["probabilityEnd"]
+        self.perturb_prescribed = self.cfg["env"]["evaluate"]["perturbPrescribed"]["perturbPrescribedOn"]
+        self.perturb_prescribed_force_x = self.cfg["env"]["evaluate"]["perturbPrescribed"]["forceX"]
+        self.perturb_prescribed_force_y = self.cfg["env"]["evaluate"]["perturbPrescribed"]["forceY"]
+        self.perturb_prescribed_force_z = self.cfg["env"]["evaluate"]["perturbPrescribed"]["forceZ"]
+        self.perturb_prescribed_torque_x = self.cfg["env"]["evaluate"]["perturbPrescribed"]["torqueX"]
+        self.perturb_prescribed_torque_y = self.cfg["env"]["evaluate"]["perturbPrescribed"]["torqueY"]
+        self.perturb_prescribed_torque_z = self.cfg["env"]["evaluate"]["perturbPrescribed"]["torqueZ"]
+        self.perturb_prescribed_start = int(self.cfg["env"]["evaluate"]["perturbPrescribed"]["interval_s"] / self.dt + 0.5)
+        self.perturb_prescribed_stop = int(self.perturb_prescribed_start + self.cfg["env"]["evaluate"]["perturbPrescribed"]["length_s"] / self.dt + 0.5)
+
+>>>>>>> frontiers
         self.Kp = self.cfg["env"]["control"]["stiffness"]
         self.Kd = self.cfg["env"]["control"]["damping"]
 
