@@ -86,3 +86,11 @@ params:
     player:
       export_data: True
       games_num: 400
+
+      ablation_trial: True
+      ablate:
+        targeted_ablation_trial: False
+        wait_until_disturbance: True
+        ablations_hn_out: 0
+        ablations_hn_in: 0
+        ablations_cn: 0
