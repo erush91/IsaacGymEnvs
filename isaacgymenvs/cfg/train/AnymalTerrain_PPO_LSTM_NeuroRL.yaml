@@ -94,4 +94,4 @@ params:
         ablations_obs_in: 0
         ablations_hn_out: 0
         ablations_hn_in: 0
-        ablations_cn: 0
+        ablations_cn_in: 0
