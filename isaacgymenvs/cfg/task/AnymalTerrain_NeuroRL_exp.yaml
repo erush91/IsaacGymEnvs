@@ -1,6 +1,8 @@
 # used to create the object
 name: AnymalTerrain
 
+train: False
+
 physics_engine: 'physx'
 
 env:

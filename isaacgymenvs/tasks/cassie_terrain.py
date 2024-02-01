@@ -40,7 +40,7 @@ from typing import Tuple, Dict
 from isaacgymenvs.tasks.base.vec_task import VecTask
 
 
-class A1Terrain(VecTask):
+class CassieTerrain(VecTask):
 
     def __init__(self, cfg, rl_device, sim_device, graphics_device_id, headless, virtual_screen_capture, force_render):
 
@@ -140,7 +140,6 @@ class A1Terrain(VecTask):
         self.Kd = self.cfg["env"]["control"]["damping"]
         self.curriculum = self.cfg["env"]["terrain"]["curriculum"]
 
-
         for key in self.rew_scales.keys():
             self.rew_scales[key] *= self.dt
 
@@ -180,7 +179,7 @@ class A1Terrain(VecTask):
         self.torques = torch.zeros(self.num_envs, self.num_actions, dtype=torch.float, device=self.device, requires_grad=False)
         self.actions = torch.zeros(self.num_envs, self.num_actions, dtype=torch.float, device=self.device, requires_grad=False)
         self.last_actions = torch.zeros(self.num_envs, self.num_actions, dtype=torch.float, device=self.device, requires_grad=False)
-        self.feet_air_time = torch.zeros(self.num_envs, 4, dtype=torch.float, device=self.device, requires_grad=False)
+        self.feet_air_time = torch.zeros(self.num_envs, 2, dtype=torch.float, device=self.device, requires_grad=False)
         self.last_dof_vel = torch.zeros_like(self.dof_vel)
 
         self.height_points = self.init_height_points()
@@ -301,9 +300,7 @@ class A1Terrain(VecTask):
         knee_name = self.cfg["env"]["urdfAsset"]["kneeName"]
         feet_names = [s for s in body_names if foot_name in s]
         self.feet_indices = torch.zeros(len(feet_names), dtype=torch.long, device=self.device, requires_grad=False)
-        knee_names = []
-        for name in knee_name:
-            knee_names.extend([s for s in body_names if name in s])
+        knee_names = [s for s in body_names if knee_name in s]
         self.knee_indices = torch.zeros(len(knee_names), dtype=torch.long, device=self.device, requires_grad=False)
         self.base_index = 0
 
@@ -435,14 +432,12 @@ class A1Terrain(VecTask):
         self.episode_sums["air_time"] += rew_airTime
         self.episode_sums["base_height"] += rew_base_height
         self.episode_sums["hip"] += rew_hip
-        
+
+    def compute_info(self):
         self.extras['foot_forces'] = self.contact_forces[:, self.feet_indices, 2]
         self.extras['perturb_begin'] = self.apply_prescribed_perturb_start_now
         self.extras['perturb'] = self.apply_prescribed_perturb_now
         self.extras['stance_begin'] = self.new_stance
-
-    def compute_info(self):
-        self.extras['info'] = self.contact_forces[:, self.feet_indices, 2]
 
     def reset_idx(self, env_ids):
         positions_offset = torch_rand_float(0.5, 1.5, (len(env_ids), self.num_dof), device=self.device)
@@ -520,10 +515,10 @@ class A1Terrain(VecTask):
 
         ### Compute when to apply perturbations
         # is LF foot touching groud (varies by agent)?
-        LF_foot_contact = self.contact_forces[:, self.feet_indices[0], 2] > 0
+        LF_foot_contact = self.contact_forces[:, 3, 2] > 0
 
         # is RH foot touching groud (varies by agent)?
-        RH_foot_contact = self.contact_forces[:, self.feet_indices[3], 2] > 0
+        RH_foot_contact = self.contact_forces[:, 12, 2] > 0
 
         self.stance = LF_foot_contact * RH_foot_contact
 
@@ -542,7 +537,6 @@ class A1Terrain(VecTask):
         # compute if apply perturbation now (varies by agent)
         self.apply_prescribed_perturb_now = (self.perturb_started == 1) * (self.perturb_ended == 0)
 
-
         for i in range(self.decimation):
             torques = torch.clip(self.Kp*(self.action_scale*self.actions + self.default_dof_pos - self.dof_pos) - self.Kd*self.dof_vel,
                                  -80., 80.)
@@ -552,34 +546,35 @@ class A1Terrain(VecTask):
             if self.apply_prescribed_perturb_now.any():
                 f_perturb = self.apply_prescribed_perturbations()
                 f_perturb1 = f_perturb[0,0,:].cpu().detach().numpy()
-                
+
             self.gym.simulate(self.sim)
-            
+
             if self.device == 'cpu':
                 self.gym.fetch_results(self.sim, True)
             self.gym.refresh_dof_state_tensor(self.sim)
 
-            self.gait_idx += 1
-            self.stance_last = self.stance
+        self.gait_idx += 1
+        self.stance_last = self.stance
 
-            # if self.force_render and ((self.perturb_random and f_perturb1[0] > 0) or (self.perturb_prescribed and self.apply_prescribed_perturb_now.any())):
-            #     pos_x = self.root_states[0,0]
-            #     pos_y = self.root_states[0,1]
-            #     pos_z = self.root_states[0,2]
-            #     pos = gymapi.Transform(gymapi.Vec3(pos_x, pos_y, pos_z), r=None)
+        # if self.force_render and ((self.perturb_random and f_perturb1[0] > 0) or (self.perturb_prescribed and self.apply_prescribed_perturb_now.any())):
+        #     pos_x = self.root_states[0,0]
+        #     pos_y = self.root_states[0,1]
+        #     pos_z = self.root_states[0,2]
+        #     pos = gymapi.Transform(gymapi.Vec3(pos_x, pos_y, pos_z), r=None)
 
-            #     # Draw force vector base
-            #     sphere = gymutil.WireframeSphereGeometry(0.02, 4, 4, None, color=(1, 1, 0))
-            #     gymutil.draw_lines(sphere, self.gym, self.viewer, self.envs[0], pos)
+        #     # Draw force vector base
+        #     sphere = gymutil.WireframeSphereGeometry(0.02, 4, 4, None, color=(1, 1, 0))
+        #     gymutil.draw_lines(sphere, self.gym, self.viewer, self.envs[0], pos)
 
-            #     # Draw force vector lines
-            #     self.gym.add_lines(self.viewer, self.envs[0], 1, [pos_x.cpu().numpy(),
-            #                                                     pos_y.cpu().numpy(),
-            #                                                     pos_z.cpu().numpy(),
-            #                                                     pos_x.cpu().numpy() + 0.1 * f_perturb1[0] / 100,
-            #                                                     pos_y.cpu().numpy() + 0.1 * f_perturb1[1] / 100,
-            #                                                     pos_z.cpu().numpy() + 0.1 * f_perturb1[2] / 100,
-            #                                                     ], [1, 0, 0])
+        #     # Draw force vector lines
+        #     self.gym.add_lines(self.viewer, self.envs[0], 1, [pos_x.cpu().numpy(),
+        #                                                     pos_y.cpu().numpy(),
+        #                                                     pos_z.cpu().numpy(),
+        #                                                     pos_x.cpu().numpy() + 0.1 * f_perturb1[0] / 100,
+        #                                                     pos_y.cpu().numpy() + 0.1 * f_perturb1[1] / 100,
+        #                                                     pos_z.cpu().numpy() + 0.1 * f_perturb1[2] / 100,
+        #                                                     ], [1, 0, 0])
+        
 
     def post_physics_step(self):
         # self.gym.refresh_dof_state_tensor(self.sim) # done in step
