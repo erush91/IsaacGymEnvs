@@ -164,8 +164,11 @@
     <collision>
       <origin rpy="1.57 0 0.85" xyz="0.03 0.03 0."/>
       <geometry>
-        <cylinder length="0.125" radius="0.02"/>
+        <mesh filename="../meshes/toe.stl" scale="1 1 1"/>
       </geometry>
+      <!-- <geometry>
+        <cylinder length="0.125" radius="0.02"/>
+      </geometry> -->
     </collision>
   </link>
   <link name="right_pelvis_abduction">
@@ -298,8 +301,11 @@
     <collision>
       <origin rpy="1.57 0 0.85" xyz="0.03 0.03 0."/>
       <geometry>
-        <cylinder length="0.125" radius="0.02"/>
+        <mesh filename="../meshes/toe_mirror.stl" scale="1 1 1"/>
       </geometry>
+      <!-- <geometry>
+        <cylinder length="0.125" radius="0.02"/>
+      </geometry> -->
     </collision>
   </link>
   <joint name="fixed_pelvis_to_base" type="fixed">
@@ -413,7 +419,7 @@
     <axis xyz="0 0 1"/>
     <parent link="right_tarsus"/>
     <child link="right_toe"/>
-    <limit effort="45" lower="-2.4435" upper="-0.5236" velocity="20.5192"/>
+    <limit effort="45" lower="-2.4435" upper="0.5236" velocity="20.5192"/>
   </joint>
   <!-- <transmission name="hip_abduction_trans_left" type="transmission_interface/SimpleTransmission">
     <joint name="hip_abduction_left"/>

@@ -78,6 +78,7 @@ class CassieTerrain(VecTask):
         self.rew_scales["stumble"] = self.cfg["env"]["learn"]["feetStumbleRewardScale"]
         self.rew_scales["action_rate"] = self.cfg["env"]["learn"]["actionRateRewardScale"]
         self.rew_scales["hip"] = self.cfg["env"]["learn"]["hipRewardScale"]
+        self.rew_scales["no_fly"] = self.cfg["env"]["learn"]["noFlyRewardScale"]
 
         # specified command velocity: ranges
         self.specified_command_x_range = self.cfg["env"]["specifiedCommandVelocityRanges"]["linear_x"]
@@ -136,6 +137,23 @@ class CassieTerrain(VecTask):
         self.perturb_prescribed_stop = int(self.perturb_prescribed_start + self.cfg["env"]["evaluate"]["perturbPrescribed"]["length_s"] / self.dt + 0.5)
         self.perturb_prescribed_length = self.perturb_prescribed_stop - self.perturb_prescribed_start
         self.allow_knee_contacts = self.cfg["env"]["learn"]["allowKneeContacts"]
+        self.Kp_hip_abduction = self.cfg["env"]["control"]["joint_stiffness"]['hip_abduction']
+        self.Kp_hip_rotation = self.cfg["env"]["control"]["joint_stiffness"]['hip_rotation']
+        self.Kp_hip_flexion = self.cfg["env"]["control"]["joint_stiffness"]['hip_flexion']
+        self.Kp_thigh_joint = self.cfg["env"]["control"]["joint_stiffness"]['thigh_joint']
+        self.Kp_ankle_joint = self.cfg["env"]["control"]["joint_stiffness"]['ankle_joint']
+        self.Kp_toe_joint = self.cfg["env"]["control"]["joint_stiffness"]['toe_joint']
+        self.Kd_hip_abduction = self.cfg["env"]["control"]["joint_damping"]['hip_abduction']
+        self.Kd_hip_rotation = self.cfg["env"]["control"]["joint_damping"]['hip_rotation']
+        self.Kd_hip_flexion = self.cfg["env"]["control"]["joint_damping"]['hip_flexion']
+        self.Kd_thigh_joint = self.cfg["env"]["control"]["joint_damping"]['thigh_joint']
+        self.Kd_ankle_joint = self.cfg["env"]["control"]["joint_damping"]['ankle_joint']
+        self.Kd_toe_joint = self.cfg["env"]["control"]["joint_damping"]['toe_joint']
+
+        self.Kp_joints = torch.tensor([self.Kp_hip_abduction, self.Kp_hip_rotation, self.Kp_hip_flexion, self.Kp_thigh_joint, self.Kp_ankle_joint, self.Kp_toe_joint,
+            self.Kp_hip_abduction, self.Kp_hip_rotation, self.Kp_hip_flexion, self.Kp_thigh_joint, self.Kp_ankle_joint, self.Kp_toe_joint], device=rl_device)
+        self.Kd_joints = torch.tensor([self.Kd_hip_abduction, self.Kd_hip_rotation, self.Kd_hip_flexion, self.Kd_thigh_joint, self.Kd_ankle_joint, self.Kp_toe_joint,
+            self.Kd_hip_abduction, self.Kd_hip_rotation, self.Kd_hip_flexion, self.Kd_thigh_joint, self.Kd_ankle_joint, self.Kp_toe_joint], device=rl_device)
         self.Kp = self.cfg["env"]["control"]["stiffness"]
         self.Kd = self.cfg["env"]["control"]["damping"]
         self.curriculum = self.cfg["env"]["terrain"]["curriculum"]
@@ -194,7 +212,7 @@ class CassieTerrain(VecTask):
         torch_zeros = lambda : torch.zeros(self.num_envs, dtype=torch.float, device=self.device, requires_grad=False)
         self.episode_sums = {"lin_vel_xy": torch_zeros(), "lin_vel_z": torch_zeros(), "ang_vel_z": torch_zeros(), "ang_vel_xy": torch_zeros(),
                              "orient": torch_zeros(), "torques": torch_zeros(), "joint_acc": torch_zeros(), "base_height": torch_zeros(),
-                             "air_time": torch_zeros(), "collision": torch_zeros(), "stumble": torch_zeros(), "action_rate": torch_zeros(), "hip": torch_zeros()}
+                             "air_time": torch_zeros(), "collision": torch_zeros(), "stumble": torch_zeros(), "action_rate": torch_zeros(), "hip": torch_zeros(), "no_fly": torch_zeros()}
 
         self.reset_idx(torch.arange(self.num_envs, device=self.device))
         self.init_done = True
@@ -341,12 +359,12 @@ class CassieTerrain(VecTask):
         for i in range(len(knee_names)):
             self.knee_indices[i] = self.gym.find_actor_rigid_body_handle(self.envs[0], self.anymal_handles[0], knee_names[i])
 
-        self.base_index = self.gym.find_actor_rigid_body_handle(self.envs[0], self.anymal_handles[0], "base")
+        self.base_index = self.gym.find_actor_rigid_body_handle(self.envs[0], self.anymal_handles[0], "pelvis")
 
     def check_termination(self):
-        self.reset_buf = torch.norm(self.contact_forces[:, self.base_index, :], dim=1) > 1.
+        self.reset_buf = torch.norm(self.contact_forces[:, self.base_index, :], dim=1) > 0.1
         if not self.allow_knee_contacts:
-            knee_contact = torch.norm(self.contact_forces[:, self.knee_indices, :], dim=2) > 1.
+            knee_contact = torch.norm(self.contact_forces[:, self.knee_indices, :], dim=2) > 0.1
             self.reset_buf |= torch.any(knee_contact, dim=1)
 
         self.reset_buf = torch.where(self.progress_buf >= self.max_episode_length - 1, torch.ones_like(self.reset_buf), self.reset_buf)
@@ -379,7 +397,7 @@ class CassieTerrain(VecTask):
         rew_orient = torch.sum(torch.square(self.projected_gravity[:, :2]), dim=1) * self.rew_scales["orient"]
 
         # base height penalty
-        rew_base_height = torch.square(self.root_states[:, 2] - 0.52) * self.rew_scales["base_height"] # TODO add target base height to cfg
+        rew_base_height = torch.square(self.root_states[:, 2] - 1.0) * self.rew_scales["base_height"] # TODO add target base height to cfg
 
         # torque penalty
         rew_torque = torch.sum(torch.square(self.torques), dim=1) * self.rew_scales["torque"]
@@ -388,7 +406,7 @@ class CassieTerrain(VecTask):
         rew_joint_acc = torch.sum(torch.square(self.last_dof_vel - self.dof_vel), dim=1) * self.rew_scales["joint_acc"]
 
         # collision penalty
-        knee_contact = torch.norm(self.contact_forces[:, self.knee_indices, :], dim=2) > 1.
+        knee_contact = torch.norm(self.contact_forces[:, self.knee_indices, :], dim=2) > 0.1
         rew_collision = torch.sum(knee_contact, dim=1) * self.rew_scales["collision"] # sum vs any ?
 
         # stumbling penalty
@@ -398,9 +416,12 @@ class CassieTerrain(VecTask):
         # action rate penalty
         rew_action_rate = torch.sum(torch.square(self.last_actions - self.actions), dim=1) * self.rew_scales["action_rate"]
 
+        # action rate penalty
+        rew_no_fly = 1.* (torch.sum(1.* (self.contact_forces[:, self.feet_indices, 2] > 0.1), dim=1)==1) * self.rew_scales["no_fly"]
+
         # air time reward
         # contact = torch.norm(contact_forces[:, feet_indices, :], dim=2) > 1.
-        contact = self.contact_forces[:, self.feet_indices, 2] > 1.
+        contact = self.contact_forces[:, self.feet_indices, 2] > 0.1
         first_contact = (self.feet_air_time > 0.) * contact
         self.feet_air_time += self.dt
         rew_airTime = torch.sum((self.feet_air_time - 0.5) * first_contact, dim=1) * self.rew_scales["air_time"] # reward only on first contact with the ground
@@ -412,7 +433,7 @@ class CassieTerrain(VecTask):
 
         # total reward
         self.rew_buf = rew_lin_vel_xy + rew_ang_vel_z + rew_lin_vel_z + rew_ang_vel_xy + rew_orient + rew_base_height +\
-                    rew_torque + rew_joint_acc + rew_collision + rew_action_rate + rew_airTime + rew_hip + rew_stumble
+                    rew_torque + rew_joint_acc + rew_collision + rew_action_rate + rew_airTime + rew_hip + rew_stumble + rew_no_fly
         self.rew_buf = torch.clip(self.rew_buf, min=0., max=None)
 
         # add termination reward
@@ -432,6 +453,8 @@ class CassieTerrain(VecTask):
         self.episode_sums["air_time"] += rew_airTime
         self.episode_sums["base_height"] += rew_base_height
         self.episode_sums["hip"] += rew_hip
+        self.episode_sums["no_fly"] += rew_no_fly
+
 
     def compute_info(self):
         self.extras['foot_forces'] = self.contact_forces[:, self.feet_indices, 2]
@@ -538,7 +561,7 @@ class CassieTerrain(VecTask):
         self.apply_prescribed_perturb_now = (self.perturb_started == 1) * (self.perturb_ended == 0)
 
         for i in range(self.decimation):
-            torques = torch.clip(self.Kp*(self.action_scale*self.actions + self.default_dof_pos - self.dof_pos) - self.Kd*self.dof_vel,
+            torques = torch.clip(self.Kp_joints*(self.action_scale*self.actions + self.default_dof_pos - self.dof_pos) - self.Kd_joints*self.dof_vel,
                                  -80., 80.)
             self.gym.set_dof_actuation_force_tensor(self.sim, gymtorch.unwrap_tensor(torques))
             self.torques = torques.view(self.torques.shape)
