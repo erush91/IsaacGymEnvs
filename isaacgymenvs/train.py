@@ -180,10 +180,13 @@ def launch_rlg_hydra(cfg: DictConfig):
     runner.reset()
 
     # dump config dict
-    if cfg.test:
-        experiment_dir = os.path.join('data', '{date:%Y-%m-%d-%H-%M}_'.format( date=datetime.datetime.now()) + cfg.train.params.config.name)
+    if 'output_path' in cfg.keys():
+        experiment_dir = cfg.output_path
     else:
-        experiment_dir = os.path.join('runs', '{date:%Y-%m-%d-%H-%M}_'.format( date=datetime.datetime.now()) + cfg.train.params.config.name)
+        if cfg.test:
+            experiment_dir = os.path.join('data', '{date:%Y-%m-%d-%H-%M}_'.format( date=datetime.datetime.now()) + cfg.train.params.config.name)
+        else:
+            experiment_dir = os.path.join('runs', '{date:%Y-%m-%d-%H-%M}_'.format( date=datetime.datetime.now()) + cfg.train.params.config.name)
 
 
     os.makedirs(experiment_dir, exist_ok=True)

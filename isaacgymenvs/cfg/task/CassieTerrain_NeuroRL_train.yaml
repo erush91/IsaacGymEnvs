@@ -150,10 +150,10 @@ env:
     jointAccRewardScale: -0.0000001 # -0.0025
     baseHeightRewardScale: -0.0 #5
     feetAirTimeRewardScale:  1.0
-    kneeCollisionRewardScale: -0.25
+    kneeCollisionRewardScale: -5.
     feetStumbleRewardScale: -0. #-2.0
     actionRateRewardScale: -0.01
-    noFlyRewardScale: 5. # 0.25
+    noFlyRewardScale: 10. # 0.25
     # cosmetics
     hipRewardScale: -0. #25
 

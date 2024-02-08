@@ -84,14 +84,4 @@ params:
     save_frequency: 100
     print_stats: True
     player:
-      export_data: True
-      games_num: 400
-
-      ablation_trial: True
-      ablate:
-        targeted_ablation_trial: True
-        wait_until_disturbance: False
-        ablations_obs_in: 0
-        ablations_hn_out: 0
-        ablations_hn_in: 0
-        ablations_cn_in: 0
+      games_num: ${.....task.env.numEnvs}

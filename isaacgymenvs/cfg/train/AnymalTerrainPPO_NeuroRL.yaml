@@ -84,5 +84,4 @@ params:
     save_frequency: 50
     print_stats: True
     player:
-      export_data: True
-      games_num: 100
+      games_num: ${.....task.env.numEnvs}

@@ -167,6 +167,22 @@ env:
       torqueY: 0
       torqueZ: 0
 
+  ablate:
+    ablation_trial: False
+    targeted_ablation_trial: False
+    wait_until_disturbance: False
+    ablation_scl_pca_path: "/media/GENE_EXT4_2TB/code/NEURO/neuro-rl-sandbox/IsaacGymEnvs/isaacgymenvs/data/2023-09-27-15-49_u[1.0,1.0,1]_v[0.0,0.0,1]_r[0.0,0.0,1]_n[10]/" # FRONTIERS **LSTM16-DIST500 4/4 steps, W/ TERRAIN () 0.4-1.0 w/ -3.5xBW 100ms
+    ablations_obs_in: 0
+    ablations_hn_out: 0
+    ablations_hn_in: 0
+    ablations_cn_in: 0
+    
+  output:
+    export_data: False
+    export_data_path: ${....output_path}
+    export_data_actor: True
+    export_data_critic: True
+
 
   # viewer cam:
   viewer:
