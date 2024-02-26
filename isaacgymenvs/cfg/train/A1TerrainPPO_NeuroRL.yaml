@@ -85,4 +85,4 @@ params:
     print_stats: True
     player:
       export_data: True
-      games_num: 400
+      games_num: ${.....task.env.numEnvs}

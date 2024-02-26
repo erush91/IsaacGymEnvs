@@ -135,10 +135,9 @@ env:
     # heightMeasurementNoise: 0.06
     
     #randomization
-    randomizeFriction: false
     frictionRange: [0.5, 1.25]
     pushRobots: false
-    pushInterval_s: 5
+    pushInterval_s: 15.0
     
     perturbRandom:
       perturbRandomOn: false
@@ -152,7 +151,7 @@ env:
       probabilityEnd: 0.98
       
     # episode length in seconds
-    episodeLength_s: 20.02
+    episodeLength_s: 10.02
 
   evaluate:
     perturbPrescribed:
@@ -160,12 +159,12 @@ env:
       length_s: 0.08
       interval_s: 5.00
       steps_after_stance_begins: 0
-      forceX: 0 # multiple of body weight: F = (X * 9.80665 * mass [kg])
+      forceX: 0.0 # multiple of body weight: F = (X * 9.80665 * mass [kg])
       forceY: -3.5 # multiple of body weight: F = (X * 9.80665 * mass [kg])
-      forceZ: 0 # multiple of body weight: F = (X * 9.80665 * mass [kg])
-      torqueX: 0
-      torqueY: 0
-      torqueZ: 0
+      forceZ: 0.0 # multiple of body weight: F = (X * 9.80665 * mass [kg])
+      torqueX: 0.0
+      torqueY: 0.0
+      torqueZ: 0.0
 
   ablate:
     ablation_trial: False
