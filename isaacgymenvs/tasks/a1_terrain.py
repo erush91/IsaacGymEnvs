@@ -51,8 +51,7 @@ class A1Terrain(VecTask):
         self.init_done = False
 
         # neuro-rl experiment
-        self.neuro_rl = self.cfg["env"]["neuroRL"]
-
+        self.neuro_rl_experiment = self.cfg["env"]["neuroRLExperiment"]
 
         # normalization
         self.lin_vel_scale = self.cfg["env"]["learn"]["linearVelocityScale"]
@@ -220,7 +219,7 @@ class A1Terrain(VecTask):
         elif terrain_type=='trimesh':
             self._create_trimesh()
             self.custom_origins = True
-            if self.neuro_rl:
+            if self.neuro_rl_experiment:
                 self.custom_origins = False
         self._create_envs(self.num_envs, self.cfg["env"]['envSpacing'], int(np.sqrt(self.num_envs)))
 
@@ -469,7 +468,7 @@ class A1Terrain(VecTask):
                                               gymtorch.unwrap_tensor(self.dof_state),
                                               gymtorch.unwrap_tensor(env_ids_int32), len(env_ids_int32))
 
-        if self.neuro_rl:
+        if self.neuro_rl_experiment:
             no_exp = self.specified_command_x_no * self.specified_command_y_no * self.specified_command_yawrate_no * self.specified_command_no_copies
             u = torch.linspace(self.specified_command_x_range[0], self.specified_command_x_range[1], self.specified_command_x_no, device=self.device).squeeze()
             v = torch.linspace(self.specified_command_y_range[0], self.specified_command_y_range[1], self.specified_command_y_no, device=self.device).squeeze()
@@ -599,7 +598,7 @@ class A1Terrain(VecTask):
         self.projected_gravity = quat_rotate_inverse(self.base_quat, self.gravity_vec)
         forward = quat_apply(self.base_quat, self.forward_vec)
         heading = torch.atan2(forward[:, 1], forward[:, 0])
-        if not self.neuro_rl:
+        if not self.neuro_rl_experiment:
             self.commands[:, 2] = torch.clip(0.5*wrap_to_pi(self.commands[:, 3] - heading), -1., 1.)
 
         # compute observations, rewards, resets, ...

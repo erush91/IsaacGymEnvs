@@ -12,7 +12,7 @@ env:
   envSpacing: 0.  # [m]
   enableDebugVis: False
 
-  neuroRL: true
+  neuroRLExperiment: true
 
   specifiedCommandVelocityRanges:
     linear_x: [1.0, 1.0]

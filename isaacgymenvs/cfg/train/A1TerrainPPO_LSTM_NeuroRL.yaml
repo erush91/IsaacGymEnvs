@@ -78,10 +78,10 @@ params:
     zero_bias_actor_rnn: True
     zero_action_feedback: True
 
-    max_epochs: ${resolve_default:24000,${....max_iterations}}
+    max_epochs: ${resolve_default:25000,${....max_iterations}}
     save_best_after: 100
-    score_to_win: 20000
-    save_frequency: 100
+    score_to_win: 20.
+    save_frequency: 50
     print_stats: True
     player:
       games_num: ${.....task.env.numEnvs}
