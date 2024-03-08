@@ -138,19 +138,19 @@ env:
     pushRobots: false
     pushInterval_s: 5
     
+    # episode length in seconds
+    episodeLength_s: 20
+
     perturbRandom:
       perturbRandomOn: true
-      forceX: 0.25 # 0.95902417616 * 1 time steps * 53.16426 kg * 9.80665 m/s^2 = 500 N ##### 0.23975604404 * 4 time steps * 53.16426 kg * 9.80665 m/s^2 = 500 N
-      forceY: 0.25 # 0.95902417616 * 1 time steps * 53.16426 kg * 9.80665 m/s^2 = 500 N ##### 0.23975604404 * 4 time steps * 53.16426 kg * 9.80665 m/s^2 = 500 N
-      forceZ: 0.25 # 0.95902417616 * 1 time steps * 53.16426 kg * 9.80665 m/s^2 = 500 N ##### 0.23975604404 * 4 time steps * 53.16426 kg * 9.80665 m/s^2 = 500 N
+      forceX: 0.95902417616 # 0.95902417616 * 1 time steps * 53.16426 kg * 9.80665 m/s^2 = 500 N ##### 0.23975604404 * 4 time steps * 53.16426 kg * 9.80665 m/s^2 = 500 N
+      forceY: 0.95902417616 # 0.95902417616 * 1 time steps * 53.16426 kg * 9.80665 m/s^2 = 500 N ##### 0.23975604404 * 4 time steps * 53.16426 kg * 9.80665 m/s^2 = 500 N
+      forceZ: 0.95902417616 # 0.95902417616 * 1 time steps * 53.16426 kg * 9.80665 m/s^2 = 500 N ##### 0.23975604404 * 4 time steps * 53.16426 kg * 9.80665 m/s^2 = 500 N
       torqueX: 0
       torqueY: 0
       torqueZ: 0
       probabilityStart: 0.01
       probabilityEnd: 0.98
-      
-    # episode length in seconds
-    episodeLength_s: 20.02
 
   evaluate:
     perturbPrescribed:
