@@ -509,10 +509,6 @@ class AnymalTerrain(VecTask):
     def pre_physics_step(self, actions):
         self.actions = actions.clone().to(self.device)
 
-        if self.perturb_random:
-            f_perturb = self.apply_random_perturbations()
-            f_perturb1 = f_perturb[0,0,:].cpu().detach().numpy()
-
         ### Compute when to apply perturbations
         # is LF foot touching groud (varies by agent)?
         LF_foot_contact = self.contact_forces[:, 3, 2] > 0
@@ -547,11 +543,16 @@ class AnymalTerrain(VecTask):
                 f_perturb = self.apply_prescribed_perturbations()
                 f_perturb1 = f_perturb[0,0,:].cpu().detach().numpy()
 
+            if self.perturb_random:
+                f_perturb = self.apply_random_perturbations()
+                f_perturb1 = f_perturb[0,0,:].cpu().detach().numpy()
+                
             self.gym.simulate(self.sim)
 
             if self.device == 'cpu':
                 self.gym.fetch_results(self.sim, True)
             self.gym.refresh_dof_state_tensor(self.sim)
+
 
         self.gait_idx += 1
         self.stance_last = self.stance
