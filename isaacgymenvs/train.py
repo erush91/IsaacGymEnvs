@@ -53,6 +53,7 @@ def preprocess_train_config(cfg, config_dict):
 
     train_cfg = config_dict['params']['config']
     train_cfg['full_experiment_name'] = cfg.get('full_experiment_name')
+    train_cfg['train_dir'] = cfg.get('train_dir')
 
     try:
         model_size_multiplier = config_dict['params']['network']['mlp']['model_size_multiplier']
@@ -180,8 +181,14 @@ def launch_rlg_hydra(cfg: DictConfig):
     runner.reset()
 
     # dump config dict
-    experiment_dir = os.path.join('runs', cfg.train.params.config.name + 
-    '-{date:%Y-%m-%d_%H-%M-%S}'.format( date=datetime.datetime.now()))
+    if 'output_path' in cfg.keys():
+        experiment_dir = cfg.output_path
+    else:
+        if cfg.test:
+            experiment_dir = os.path.join('data', '{date:%Y-%m-%d-%H-%M}_'.format( date=datetime.datetime.now()) + cfg.train.params.config.name)
+        else:
+            experiment_dir = os.path.join('models', '{date:%Y-%m-%d-%H-%M}_'.format( date=datetime.datetime.now()) + cfg.train.params.config.name)
+
 
     os.makedirs(experiment_dir, exist_ok=True)
     with open(os.path.join(experiment_dir, 'config.yaml'), 'w') as f:
@@ -191,7 +198,8 @@ def launch_rlg_hydra(cfg: DictConfig):
         'train': not cfg.test,
         'play': cfg.test,
         'checkpoint' : cfg.checkpoint,
-        'sigma': cfg.sigma if cfg.sigma != '' else None
+        'sigma': cfg.sigma if cfg.sigma != '' else None,
+        'train_dir': cfg.get('train_dir')
     })
 
     if cfg.wandb_activate and rank == 0:
