@@ -543,14 +543,16 @@ class AnymalTerrain(VecTask):
             if self.apply_prescribed_perturb_now.any():
                 f_perturb = self.apply_prescribed_perturbations()
                 f_perturb1 = f_perturb[0,0,:].cpu().detach().numpy()
+                    
+            if self.perturb_random:
+                f_perturb = self.apply_random_perturbations()
+                f_perturb1 = f_perturb[0,0,:].cpu().detach().numpy()
+
             self.gym.simulate(self.sim)
             if self.device == 'cpu':
                 self.gym.fetch_results(self.sim, True)
             self.gym.refresh_dof_state_tensor(self.sim)
 
-        if self.perturb_random:
-            f_perturb = self.apply_random_perturbations()
-            f_perturb1 = f_perturb[0,0,:].cpu().detach().numpy()
 
         self.gait_idx += 1
         self.stance_last = self.stance
