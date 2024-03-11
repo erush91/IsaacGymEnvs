@@ -16,7 +16,6 @@ env:
 
   specifiedCommandVelocityRanges:
     linear_x: [0.5, 1.]
-
     linear_y: [-0., 0.]
     yaw_rate: [-0., 0.]
 
@@ -156,26 +155,37 @@ env:
     perturbPrescribed:
       perturbPrescribedOn: false
       length_s: 0.08
-      interval_s: 1.00
+      interval_s: 5.00
       steps_after_stance_begins: 0
-      forceX: 0. 
+      forceX: 0 
       forceY: -3.5 # 14.3415025352 *1/4 time steps * 53.16426 kg * 9.80665 m/s^2 = 1869.2832375 N (3.5 x BW) # 3.5853756338 *4/4 time steps * 53.16426 kg * 9.80665 m/s^2 = 1869.2832375 N (3.5 x BW)
-      forceZ: 0.
-      torqueX: 0.
-      torqueY: 0.
-      torqueZ: 0.
+      forceZ: 0
+      torqueX: 0
+      torqueY: 0
+      torqueZ: 0
 
   ablate:
-    ablation_trial: False
-    targeted_ablation_trial: False
-    wait_until_disturbance: False
-    ablations_obs_in: 0
-    ablations_hn_out: 0
-    ablations_hn_in: 0
-    ablations_cn_in: 0
+    wait_until_disturbance: false
+    scl_pca_path: "u_0.4_1.0_14_v_0._0._1_r_0._0._1_n_20"
+    random_trial: false
+    random:
+      obs_in: 0
+      hn_out: 0
+      hn_in: 0
+      cn_in: 0
+    targeted_trial: false
+    targeted:
+      obs_in: 0
+      hn_out: 0
+      hn_in: 0
+      cn_in: 0
 
-  output:
-    export_data: False
+  import_data: ""
+  export_data: True
+  export_data_actor: True
+  export_data_critic: False
+  export_data_path: ""
+  live_plot: false
 
   # viewer cam:
   viewer:

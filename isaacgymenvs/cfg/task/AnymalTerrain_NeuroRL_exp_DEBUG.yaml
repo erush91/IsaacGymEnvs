@@ -24,7 +24,9 @@ env:
     linear_y: 1
     yaw_rate: 1
     n_copies: 400
- 
+
+
+  
   terrain:
     terrainType: plane # none, plane, or trimesh
     staticFriction: 1.0  # [-]
@@ -137,23 +139,23 @@ env:
     pushRobots: false
     pushInterval_s: 15.0
     
+    # episode length in seconds
+    episodeLength_s: 10.02
+
     perturbRandom:
       perturbRandomOn: false
-      forceX: 0.23975604404 # 0.95902417616 * 1 time steps * 53.16426 kg * 9.80665 m/s^2 = 500 N ##### 0.23975604404 * 4 time steps * 53.16426 kg * 9.80665 m/s^2 = 500 N
-      forceY: 0.23975604404 # 0.95902417616 * 1 time steps * 53.16426 kg * 9.80665 m/s^2 = 500 N ##### 0.23975604404 * 4 time steps * 53.16426 kg * 9.80665 m/s^2 = 500 N
-      forceZ: 0.23975604404 # 0.95902417616 * 1 time steps * 53.16426 kg * 9.80665 m/s^2 = 500 N ##### 0.23975604404 * 4 time steps * 53.16426 kg * 9.80665 m/s^2 = 500 N
+      forceX: 0 # 0.95902417616 * 1 time steps * 53.16426 kg * 9.80665 m/s^2 = 500 N ##### 0.23975604404 * 4 time steps * 53.16426 kg * 9.80665 m/s^2 = 500 N
+      forceY: 0 # 0.95902417616 * 1 time steps * 53.16426 kg * 9.80665 m/s^2 = 500 N ##### 0.23975604404 * 4 time steps * 53.16426 kg * 9.80665 m/s^2 = 500 N
+      forceZ: 0 # 0.95902417616 * 1 time steps * 53.16426 kg * 9.80665 m/s^2 = 500 N ##### 0.23975604404 * 4 time steps * 53.16426 kg * 9.80665 m/s^2 = 500 N
       torqueX: 0
       torqueY: 0
       torqueZ: 0
       probabilityStart: 0.01
       probabilityEnd: 0.98
-      
-    # episode length in seconds
-    episodeLength_s: 10.02
 
   evaluate:
     perturbPrescribed:
-      perturbPrescribedOn: False
+      perturbPrescribedOn: true
       length_s: 0.08
       interval_s: 5.00
       steps_after_stance_begins: 0
@@ -165,21 +167,27 @@ env:
       torqueZ: 0.
 
   ablate:
-    ablation_trial: False
-    targeted_ablation_trial: False
-    wait_until_disturbance: False
-    ablation_scl_pca_path: "/media/GENE_EXT4_2TB/code/NEURO/neuro-rl-sandbox/IsaacGymEnvs/isaacgymenvs/data/2023-09-27-15-49_u[1.0,1.0,1]_v[0.0,0.0,1]_r[0.0,0.0,1]_n[10]/" # FRONTIERS **LSTM16-DIST500 4/4 steps, W/ TERRAIN () 0.4-1.0 w/ -3.5xBW 100ms
-    ablations_obs_in: 0
-    ablations_hn_out: 0
-    ablations_hn_in: 0
-    ablations_cn_in: 0
+    wait_until_disturbance: false
+    scl_pca_path: "u_0.4_1.0_14_v_0._0._1_r_0._0._1_n_20"
+    random_trial: false
+    random:
+      obs_in: 0
+      hn_out: 0
+      hn_in: 0
+      cn_in: 0
+    targeted_trial: false
+    targeted:
+      obs_in: 0
+      hn_out: 0
+      hn_in: 0
+      cn_in: 0
 
-  
-  output:
-    export_data: False
-    export_data_path: ${....output_path}
-    export_data_actor: True
-    export_data_critic: True
+  import_data: ""
+  export_data: True
+  export_data_actor: True
+  export_data_critic: False
+  export_data_path: ""
+  live_plot: false
 
   # viewer cam:
   viewer:
@@ -213,3 +221,4 @@ sim:
 
 task:
   randomize: False
+

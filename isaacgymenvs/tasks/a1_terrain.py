@@ -513,10 +513,6 @@ class A1Terrain(VecTask):
     def pre_physics_step(self, actions):
         self.actions = actions.clone().to(self.device)
 
-        if self.perturb_random:
-            f_perturb = self.apply_random_perturbations()
-            f_perturb1 = f_perturb[0,0,:].cpu().detach().numpy()
-
         ### Compute when to apply perturbations
         # is LF foot touching groud (varies by agent)?
         LF_foot_contact = self.contact_forces[:, self.feet_indices[0], 2] > 0
@@ -541,7 +537,6 @@ class A1Terrain(VecTask):
         # compute if apply perturbation now (varies by agent)
         self.apply_prescribed_perturb_now = (self.perturb_started == 1) * (self.perturb_ended == 0)
 
-
         for i in range(self.decimation):
             torques = torch.clip(self.Kp*(self.action_scale*self.actions + self.default_dof_pos - self.dof_pos) - self.Kd*self.dof_vel,
                                  -80., 80.)
@@ -551,6 +546,10 @@ class A1Terrain(VecTask):
             if self.apply_prescribed_perturb_now.any():
                 f_perturb = self.apply_prescribed_perturbations()
                 f_perturb1 = f_perturb[0,0,:].cpu().detach().numpy()
+
+            if self.perturb_random:
+                f_perturb = self.apply_random_perturbations()
+                f_perturb1 = f_perturb[0,0,:].cpu().detach().numpy()
                 
             self.gym.simulate(self.sim)
             
@@ -558,8 +557,8 @@ class A1Terrain(VecTask):
                 self.gym.fetch_results(self.sim, True)
             self.gym.refresh_dof_state_tensor(self.sim)
 
-            self.gait_idx += 1
-            self.stance_last = self.stance
+        self.gait_idx += 1
+        self.stance_last = self.stance
 
             # if self.force_render and ((self.perturb_random and f_perturb1[0] > 0) or (self.perturb_prescribed and self.apply_prescribed_perturb_now.any())):
             #     pos_x = self.root_states[0,0]
