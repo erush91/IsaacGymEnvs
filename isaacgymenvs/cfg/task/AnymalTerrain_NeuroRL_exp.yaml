@@ -23,7 +23,7 @@ env:
     linear_x: 1
     linear_y: 1
     yaw_rate: 1
-    n_copies: 400
+    n_copies: 1
 
 
   
@@ -151,7 +151,7 @@ env:
       torqueY: 0
       torqueZ: 0
       probabilityStart: 0.01
-      probabilityEnd: 0.98
+      probabilityEnd: 0.96
 
   evaluate:
     perturbPrescribed:

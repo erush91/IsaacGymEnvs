@@ -74,8 +74,9 @@ params:
     clip_value: True
     seq_len: 16 # only for rnn
     bounds_loss_coef: 0.
-    zero_bias_actor_rnn: False
-    zero_action_feedback: True
+    zero_arnn_bias_ih_l0: True
+    zero_arnn_bias_hh_l0: False
+    zero_action_feedback: False
 
     max_epochs: ${resolve_default:24000,${....max_iterations}}
     save_best_after: 50

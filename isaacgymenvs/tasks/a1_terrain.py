@@ -381,7 +381,7 @@ class A1Terrain(VecTask):
         rew_orient = torch.sum(torch.square(self.projected_gravity[:, :2]), dim=1) * self.rew_scales["orient"]
 
         # base height penalty
-        rew_base_height = torch.square(self.root_states[:, 2] - 0.52) * self.rew_scales["base_height"] # TODO add target base height to cfg
+        rew_base_height = torch.square(self.root_states[:, 2] - 0.22) * self.rew_scales["base_height"] # TODO add target base height to cfg
 
         # torque penalty
         rew_torque = torch.sum(torch.square(self.torques), dim=1) * self.rew_scales["torque"]
