@@ -76,8 +76,8 @@ params:
     seq_len: 16 # only for rnn
     bounds_loss_coef: 0.001
     zero_arnn_bias_ih_l0: True
-    zero_arnn_bias_hh_l0: False
-    zero_action_feedback: False
+    zero_arnn_bias_hh_l0: True
+    zero_action_feedback: True
 
     max_epochs: ${resolve_default:24000,${....max_iterations}}
     save_best_after: 50
