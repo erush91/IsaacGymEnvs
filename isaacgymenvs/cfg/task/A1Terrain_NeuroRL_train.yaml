@@ -97,13 +97,13 @@ env:
     angularVelocityXYRewardScale: -0.05
     angularVelocityZRewardScale: 0.5
     orientationRewardScale: -0. #-1.
-    torqueRewardScale: -0 # -0.000025
-    jointAccRewardScale: -0 # -0.0025
+    torqueRewardScale: -0.000002 # -0.000025
+    jointAccRewardScale: -0.00005 # -0.0025
     baseHeightRewardScale: -0.0 #5
-    feetAirTimeRewardScale:  1.0
+    feetAirTimeRewardScale:  0.8
     kneeCollisionRewardScale: -0.25
     feetStumbleRewardScale: -0. #-2.0
-    actionRateRewardScale: -0
+    actionRateRewardScale: -0.001
     # cosmetics
     hipRewardScale: -0. #25
 
