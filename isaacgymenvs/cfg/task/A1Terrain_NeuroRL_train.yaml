@@ -70,7 +70,7 @@ env:
     RR_hip_joint: -0.1 # [rad]
 
     FL_thigh_joint: 0.8 # [rad]
-    RL_thigh_joint: 1.0 # [rad]xx
+    RL_thigh_joint: 1.0 # [rad]
     FR_thigh_joint: 0.8 # [rad]
     RR_thigh_joint: 1.0 # [rad]
 
@@ -97,13 +97,13 @@ env:
     angularVelocityXYRewardScale: -0.05
     angularVelocityZRewardScale: 0.5
     orientationRewardScale: -0. #-1.
-    torqueRewardScale: 0.0 # -0.000025 
-    jointAccRewardScale: 0.0 # -0.0025  # increased from -0.002 to -0.0025
+    torqueRewardScale: -0 # -0.000025
+    jointAccRewardScale: -0 # -0.0025
     baseHeightRewardScale: -0.0 #5
     feetAirTimeRewardScale:  1.0
-    kneeCollisionRewardScale: -0.25 
+    kneeCollisionRewardScale: -0.25
     feetStumbleRewardScale: -0. #-2.0
-    actionRateRewardScale: 0.0   # increased from -0.008 to -0.012
+    actionRateRewardScale: -0
     # cosmetics
     hipRewardScale: -0. #25
 
