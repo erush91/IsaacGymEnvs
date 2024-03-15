@@ -138,7 +138,7 @@ env:
     pushInterval_s: 15.0
 
     # episode length in seconds
-    episodeLength_s: 10.02
+    episodeLength_s: 5.02
         
     perturbRandom:
       perturbRandomOn: false
