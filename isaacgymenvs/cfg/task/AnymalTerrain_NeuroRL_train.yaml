@@ -91,7 +91,7 @@ env:
   learn:
     allowKneeContacts: true
     # rewards
-    terminalReward: -2.0
+    terminalReward: -1.0
     linearVelocityXYRewardScale: 1.0
     linearVelocityZRewardScale: -4.0
     angularVelocityXYRewardScale: -0.05
@@ -154,7 +154,7 @@ env:
   evaluate:
     perturbPrescribed:
       perturbPrescribedOn: false
-      length_s: 0.08
+      length_s: 0.4
       interval_s: 3.00
       steps_after_stance_begins: 0
       forceX: 0 

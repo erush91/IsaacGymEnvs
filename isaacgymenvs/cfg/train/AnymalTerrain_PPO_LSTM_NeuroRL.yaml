@@ -80,7 +80,7 @@ params:
     zero_action_feedback: True
 
     max_epochs: ${resolve_default:5000,${....max_iterations}}
-    save_best_after: 100
+    save_best_after: 1000000
     score_to_win: 20000
     save_frequency: 100
     print_stats: True

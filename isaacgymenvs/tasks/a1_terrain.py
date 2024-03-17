@@ -194,7 +194,8 @@ class A1Terrain(VecTask):
         torch_zeros = lambda : torch.zeros(self.num_envs, dtype=torch.float, device=self.device, requires_grad=False)
         self.episode_sums = {"lin_vel_xy": torch_zeros(), "lin_vel_z": torch_zeros(), "ang_vel_z": torch_zeros(), "ang_vel_xy": torch_zeros(),
                              "orient": torch_zeros(), "torques": torch_zeros(), "joint_acc": torch_zeros(), "base_height": torch_zeros(),
-                             "air_time": torch_zeros(), "collision": torch_zeros(), "stumble": torch_zeros(), "action_rate": torch_zeros(), "hip": torch_zeros()}
+                             "air_time": torch_zeros(), "collision": torch_zeros(), "stumble": torch_zeros(), "action_rate": torch_zeros(),
+                             "hip": torch_zeros(), "total": torch_zeros()}
 
         self.reset_idx(torch.arange(self.num_envs, device=self.device))
         self.init_done = True
@@ -209,6 +210,8 @@ class A1Terrain(VecTask):
         self.perturb_ended = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device, requires_grad=False)
         self.apply_prescribed_perturb_now = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device, requires_grad=False)
         self.apply_prescribed_perturb_now_cnt = torch.zeros(self.num_envs, dtype=torch.float, device=self.device, requires_grad=False)
+
+        self.stuck_robot_counter = torch.zeros(self.num_envs, dtype=torch.int, device=self.device, requires_grad=False)
 
     def create_sim(self):
         self.up_axis_idx = 2 # index of up axis: Y=1, Z=2
@@ -351,6 +354,21 @@ class A1Terrain(VecTask):
             knee_contact = torch.norm(self.contact_forces[:, self.knee_indices, :], dim=2) > 1.
             self.reset_buf |= torch.any(knee_contact, dim=1)
 
+        # COUNTER FOR STUCK ROBOTS (RESET IF ROBOT STUCK FOR 0.5 seconds)
+        
+        # Conditions for an agent being considered stuck
+        is_stuck_condition = (self.commands[:, 0] != 0) & (self.commands[:, 1] != 0) & (self.base_lin_vel[:, 0] < 0.1) & (self.base_lin_vel[:, 1] < 0.1)
+
+        # Increment the counter for agents that meet the stuck condition
+        self.stuck_robot_counter[is_stuck_condition] += 1
+
+        # Reset the counter for agents that do not meet the stuck condition
+        self.stuck_robot_counter[~is_stuck_condition] = 0
+
+        # Check if any agent has been stuck for too long and needs a reset
+        self.reset_buf |= self.stuck_robot_counter > 25
+
+
         self.reset_buf = torch.where(self.progress_buf >= self.max_episode_length - 1, torch.ones_like(self.reset_buf), self.reset_buf)
 
     def compute_observations(self):
@@ -434,6 +452,8 @@ class A1Terrain(VecTask):
         self.episode_sums["air_time"] += rew_airTime
         self.episode_sums["base_height"] += rew_base_height
         self.episode_sums["hip"] += rew_hip
+        self.episode_sums["total"] += self.rew_buf
+
         
         self.extras['foot_forces'] = self.contact_forces[:, self.feet_indices, 2]
         self.extras['perturb_begin'] = self.apply_prescribed_perturb_start_now

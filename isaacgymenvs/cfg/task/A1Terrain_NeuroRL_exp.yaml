@@ -154,7 +154,7 @@ env:
   evaluate:
     perturbPrescribed:
       perturbPrescribedOn: false
-      length_s: 0.08
+      length_s: 0.4
       interval_s: 3.00
       steps_after_stance_begins: 0
       forceX: 0

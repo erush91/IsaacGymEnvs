@@ -600,9 +600,9 @@ class VecTask(Env):
             # create new perturbation
             if random.random() < self.perturb_random_prob_start:
                 self.perturbation = True
-                self.f_perturb[:,0,0] = 9.80665 * self.robot_mass * self.perturb_random_force_x * random.uniform(-1,1) #1500
-                self.f_perturb[:,0,1] = 9.80665 * self.robot_mass * self.perturb_random_force_y * random.uniform(-1,1) #1500
-                self.f_perturb[:,0,2] = 9.80665 * self.robot_mass * self.perturb_random_force_z * random.uniform(-1,1) #1500
+                self.f_perturb[:,0,0] = 9.80665 * self.robot_mass * self.perturb_random_force_x * (self.episode_sums["total"]/20) * random.uniform(-1,1) #1500
+                self.f_perturb[:,0,1] = 9.80665 * self.robot_mass * self.perturb_random_force_y * (self.episode_sums["total"]/20) * random.uniform(-1,1) #1500
+                self.f_perturb[:,0,2] = 9.80665 * self.robot_mass * self.perturb_random_force_z * (self.episode_sums["total"]/20) * random.uniform(-1,1) #1500
  
             # don't create new perturbation
             else:

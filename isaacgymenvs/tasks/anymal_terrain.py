@@ -194,7 +194,8 @@ class AnymalTerrain(VecTask):
         torch_zeros = lambda : torch.zeros(self.num_envs, dtype=torch.float, device=self.device, requires_grad=False)
         self.episode_sums = {"lin_vel_xy": torch_zeros(), "lin_vel_z": torch_zeros(), "ang_vel_z": torch_zeros(), "ang_vel_xy": torch_zeros(),
                              "orient": torch_zeros(), "torques": torch_zeros(), "joint_acc": torch_zeros(), "base_height": torch_zeros(),
-                             "air_time": torch_zeros(), "collision": torch_zeros(), "stumble": torch_zeros(), "action_rate": torch_zeros(), "hip": torch_zeros()}
+                             "air_time": torch_zeros(), "collision": torch_zeros(), "stumble": torch_zeros(), "action_rate": torch_zeros(),
+                             "hip": torch_zeros(), "total": torch_zeros()}
 
         self.reset_idx(torch.arange(self.num_envs, device=self.device))
         self.init_done = True
@@ -209,6 +210,10 @@ class AnymalTerrain(VecTask):
         self.perturb_ended = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device, requires_grad=False)
         self.apply_prescribed_perturb_now = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device, requires_grad=False)
         self.apply_prescribed_perturb_now_cnt = torch.zeros(self.num_envs, dtype=torch.float, device=self.device, requires_grad=False)
+
+        self.stuck_robot_counter = torch.zeros(self.num_envs, dtype=torch.int, device=self.device, requires_grad=False)
+        self.positions_history = torch.zeros((self.num_envs, 25, 2), device=self.device)  # Only needed once, at initialization
+        self.position_index = 0  # Only needed once, at initialization
 
     def create_sim(self):
         self.up_axis_idx = 2 # index of up axis: Y=1, Z=2
@@ -345,6 +350,33 @@ class AnymalTerrain(VecTask):
 
     def check_termination(self):
         self.reset_buf = torch.norm(self.contact_forces[:, self.base_index, :], dim=1) > 1.
+
+        # COUNTER FOR STUCK ROBOTS (RESET IF ROBOT STUCK FOR 0.5 seconds)
+        
+        # Initialize the positions history buffer and the index counter if not already done
+
+        # Update the positions history buffer with the current positions
+        self.positions_history[:, self.position_index, :] = self.root_states[:,:2]
+
+        # Calculate the distance between the current positions and the positions from 25 time steps ago
+        movement = torch.norm(self.root_states[:,:2] - self.positions_history[:, (self.position_index + 1) % 25, :], dim=1)
+
+        # Conditions for an agent being considered stuck
+        is_stuck_condition = ((self.commands[:, 0] != 0) | (self.commands[:, 1] != 0)) & (movement < 0.2)
+
+        # Increment the counter for agents that meet the stuck condition
+        self.stuck_robot_counter[is_stuck_condition] += 1
+
+        # Reset the counter for agents that do not meet the stuck condition
+        self.stuck_robot_counter[~is_stuck_condition] = 0
+
+        # Check if any agent has been stuck for too long and needs a reset
+        self.reset_buf |= self.stuck_robot_counter > 25
+
+        # Increment the position index for the next time step, wrapping around with modulo
+        self.position_index = (self.position_index + 1) % 25
+
+
         if not self.allow_knee_contacts:
             knee_contact = torch.norm(self.contact_forces[:, self.knee_indices, :], dim=2) > 1.
             self.reset_buf |= torch.any(knee_contact, dim=1)
@@ -432,6 +464,7 @@ class AnymalTerrain(VecTask):
         self.episode_sums["air_time"] += rew_airTime
         self.episode_sums["base_height"] += rew_base_height
         self.episode_sums["hip"] += rew_hip
+        self.episode_sums["total"] += self.rew_buf
 
     def compute_info(self):
         self.extras['foot_forces'] = self.contact_forces[:, self.feet_indices, 2]
@@ -501,7 +534,7 @@ class AnymalTerrain(VecTask):
         self.terrain_levels[env_ids] += 1 * (distance > self.terrain.env_length / 2)
         self.terrain_levels[env_ids] = torch.clip(self.terrain_levels[env_ids], 0) % self.terrain.env_rows
         self.env_origins[env_ids] = self.terrain_origins[self.terrain_levels[env_ids], self.terrain_types[env_ids]]
-
+        
     def push_robots(self):
         self.root_states[:, 7:9] = torch_rand_float(-1., 1., (self.num_envs, 2), device=self.device) # lin vel x/y
         self.gym.set_actor_root_state_tensor(self.sim, gymtorch.unwrap_tensor(self.root_states))
