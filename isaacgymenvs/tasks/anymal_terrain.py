@@ -517,7 +517,9 @@ class AnymalTerrain(VecTask):
         # is RH foot touching groud (varies by agent)?
         RH_foot_contact = self.contact_forces[:, 12, 2] > 0
 
-        self.stance = LF_foot_contact * RH_foot_contact
+        # self.stance = LF_foot_contact
+        self.stance = RH_foot_contact
+        # self.stance = LF_foot_contact * RH_foot_contact
 
         self.new_stance = ~self.stance_last * self.stance
         self.gait_idx[self.new_stance] = 0

@@ -79,10 +79,10 @@ params:
     zero_arnn_bias_hh_l0: True
     zero_action_feedback: True
 
-    max_epochs: ${resolve_default:24000,${....max_iterations}}
-    save_best_after: 50
+    max_epochs: ${resolve_default:5000,${....max_iterations}}
+    save_best_after: 100
     score_to_win: 20000
-    save_frequency: 50
+    save_frequency: 100
     print_stats: True
     player:
       games_num: ${.....task.env.numEnvs}

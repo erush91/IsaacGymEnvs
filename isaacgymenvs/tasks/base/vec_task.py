@@ -563,7 +563,7 @@ class VecTask(Env):
         self.t_perturb[:,0,2] = self.apply_prescribed_perturb_now * 9.80665 * self.robot_mass * self.perturb_prescribed_torque_z
 
 
-        self.gym.apply_rigid_body_force_tensors(self.sim, gymtorch.unwrap_tensor(self.f_perturb), gymtorch.unwrap_tensor(self.t_perturb), gymapi.ENV_SPACE)
+        self.gym.apply_rigid_body_force_tensors(self.sim, gymtorch.unwrap_tensor(self.f_perturb), gymtorch.unwrap_tensor(self.t_perturb), gymapi.LOCAL_SPACE)
 
         return self.f_perturb
         # TO DO: Apply forces to different body parts, not just center of mass (rigid body)!

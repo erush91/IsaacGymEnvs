@@ -155,10 +155,10 @@ env:
     perturbPrescribed:
       perturbPrescribedOn: false
       length_s: 0.08
-      interval_s: 5.00
+      interval_s: 3.00
       steps_after_stance_begins: 0
       forceX: 0
-      forceY: -3.5 # 14.3415025352 *1/4 time steps * 53.16426 kg * 9.80665 m/s^2 = 1869.2832375 N (3.5 x BW) # 3.5853756338 *4/4 time steps * 53.16426 kg * 9.80665 m/s^2 = 1869.2832375 N (3.5 x BW)
+      forceY: 0 # 14.3415025352 *1/4 time steps * 53.16426 kg * 9.80665 m/s^2 = 1869.2832375 N (3.5 x BW) # 3.5853756338 *4/4 time steps * 53.16426 kg * 9.80665 m/s^2 = 1869.2832375 N (3.5 x BW)
       forceZ: 0
       torqueX: 0
       torqueY: 0
