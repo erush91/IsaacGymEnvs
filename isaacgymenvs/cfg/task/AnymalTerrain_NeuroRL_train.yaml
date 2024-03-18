@@ -80,8 +80,8 @@ env:
     RH_KFE: 0.8     # [rad]
 
   urdfAsset:
-    file: "urdf/anymal_c/urdf/anymal_minimal.urdf"
-    mass: 53.16426 # [kg]
+    file: "urdf/anymal_c/urdf/anymal_minimal_0pt5MASS.urdf"
+    mass: 26.58213 # [kg]
     footName: SHANK # SHANK if collapsing fixed joint, FOOT otherwise
     kneeName: THIGH
     collapseFixedJoints: True
@@ -91,7 +91,7 @@ env:
   learn:
     allowKneeContacts: true
     # rewards
-    terminalReward: -1.0
+    terminalReward: 0
     linearVelocityXYRewardScale: 1.0
     linearVelocityZRewardScale: -4.0
     angularVelocityXYRewardScale: -0.05

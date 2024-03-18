@@ -351,30 +351,30 @@ class AnymalTerrain(VecTask):
     def check_termination(self):
         self.reset_buf = torch.norm(self.contact_forces[:, self.base_index, :], dim=1) > 1.
 
-        # COUNTER FOR STUCK ROBOTS (RESET IF ROBOT STUCK FOR 0.5 seconds)
+        # # COUNTER FOR STUCK ROBOTS (RESET IF ROBOT STUCK FOR 0.5 seconds)
         
-        # Initialize the positions history buffer and the index counter if not already done
+        # # Initialize the positions history buffer and the index counter if not already done
 
-        # Update the positions history buffer with the current positions
-        self.positions_history[:, self.position_index, :] = self.root_states[:,:2]
+        # # Update the positions history buffer with the current positions
+        # self.positions_history[:, self.position_index, :] = self.root_states[:,:2]
 
-        # Calculate the distance between the current positions and the positions from 25 time steps ago
-        movement = torch.norm(self.root_states[:,:2] - self.positions_history[:, (self.position_index + 1) % 25, :], dim=1)
+        # # Calculate the distance between the current positions and the positions from 25 time steps ago
+        # movement = torch.norm(self.root_states[:,:2] - self.positions_history[:, (self.position_index + 1) % 25, :], dim=1)
 
-        # Conditions for an agent being considered stuck
-        is_stuck_condition = ((self.commands[:, 0] != 0) | (self.commands[:, 1] != 0)) & (movement < 0.2)
+        # # Conditions for an agent being considered stuck
+        # is_stuck_condition = ((self.commands[:, 0] != 0) | (self.commands[:, 1] != 0)) & (movement < 0.2)
 
-        # Increment the counter for agents that meet the stuck condition
-        self.stuck_robot_counter[is_stuck_condition] += 1
+        # # Increment the counter for agents that meet the stuck condition
+        # self.stuck_robot_counter[is_stuck_condition] += 1
 
-        # Reset the counter for agents that do not meet the stuck condition
-        self.stuck_robot_counter[~is_stuck_condition] = 0
+        # # Reset the counter for agents that do not meet the stuck condition
+        # self.stuck_robot_counter[~is_stuck_condition] = 0
 
-        # Check if any agent has been stuck for too long and needs a reset
-        self.reset_buf |= self.stuck_robot_counter > 25
+        # # Check if any agent has been stuck for too long and needs a reset
+        # self.reset_buf |= self.stuck_robot_counter > 25
 
-        # Increment the position index for the next time step, wrapping around with modulo
-        self.position_index = (self.position_index + 1) % 25
+        # # Increment the position index for the next time step, wrapping around with modulo
+        # self.position_index = (self.position_index + 1) % 25
 
 
         if not self.allow_knee_contacts:
