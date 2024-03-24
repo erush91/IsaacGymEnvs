@@ -163,16 +163,13 @@ class AnymalTerrain(VecTask):
         self.gym.refresh_net_contact_force_tensor(self.sim)
         self.gym.refresh_rigid_body_state_tensor(self.sim)
 
-
         # create some wrapper tensors for different slices
         self.root_states = gymtorch.wrap_tensor(actor_root_state)
         self.dof_state = gymtorch.wrap_tensor(dof_state_tensor)
         self.dof_pos = self.dof_state.view(self.num_envs, self.num_dof, 2)[..., 0]
         self.dof_vel = self.dof_state.view(self.num_envs, self.num_dof, 2)[..., 1]
         self.contact_forces = gymtorch.wrap_tensor(net_contact_forces).view(self.num_envs, -1, 3) # shape: num_envs, num_bodies, xyz axis
-        # self.rigid_body_state = gymtorch.wrap_tensor(rigid_body_state) # shape: num_envs, num_bodies, xyz axis
-        # self.rigid_body_pos = self.rigid_body_state[...,:3] # world frame, but positions at joint
-        # self.rigid_body_quat = self.rigid_body_state[...,3:7]
+        self.rigid_body_state = gymtorch.wrap_tensor(rigid_body_state).view(self.num_envs, -1, self.num_bodies) # shape: num_envs, num_bodies, xyz axis
 
         # initialize some data used later on
         self.common_step_counter = 0
@@ -404,8 +401,6 @@ class AnymalTerrain(VecTask):
 
     def compute_reward(self):
 
-        # self.foot_locations = torch.matmul(quat_to_rot(self.rigid_body_quat[:, self.feet_indices]), torch.tensor([[0],[0],[0.35]], device=self.device)) + self.rigid_body_pos[:, self.feet_indices]
-
         # velocity tracking reward
         lin_vel_error = torch.sum(torch.square(self.commands[:, :2] - self.base_lin_vel[:, :2]), dim=1)
         ang_vel_error = torch.square(self.commands[:, 2] - self.base_ang_vel[:, 2])
@@ -475,9 +470,19 @@ class AnymalTerrain(VecTask):
         self.episode_sums["hip"] += rew_hip
         self.episode_sums["total"] += self.rew_buf
 
+        self.rigid_body_pos = self.rigid_body_state[..., :3] # world frame, but positions at joint
+        self.rigid_body_quat = self.rigid_body_state[..., 3:7]
+        self.com_location = self.rigid_body_pos[:, 0, :].unsqueeze(1)
+        self.foot_location = matmul_rot_matrix_vector(quat_to_rot(self.rigid_body_quat[:, self.feet_indices, :]), torch.tensor([[0],[0],[-0.35]], device=self.device)) + self.rigid_body_pos[:, self.feet_indices, :]
+
     def compute_info(self):
         self.extras['foot_forces'] = self.contact_forces[:, self.feet_indices, 2]
-        # self.extras['foot_location'] = 
+        self.extras['foot_location_x'] = self.foot_location[:, :, 0]
+        self.extras['foot_location_y'] = self.foot_location[:, :, 1]
+        self.extras['foot_location_z'] = self.foot_location[:, :, 2]
+        self.extras['com_location_x'] = self.com_location[:, :, 0]
+        self.extras['com_location_y'] = self.com_location[:, :, 1]
+        self.extras['com_location_z'] = self.com_location[:, :, 2]
         self.extras['perturb_begin'] = self.apply_prescribed_perturb_start_now
         self.extras['perturb'] = self.apply_prescribed_perturb_now
         self.extras['stance_begin'] = self.new_stance
@@ -859,32 +864,63 @@ def wrap_to_pi(angles):
     angles %= 2*np.pi
     angles -= 2*np.pi * (angles > np.pi)
     return angles
+import torch
 
 @torch.jit.script
-def quat_to_rot(quaternion):
-    """Convert a quaternion to a rotation matrix."""
-    q = quaternion / torch.norm(quaternion)
-    qx = q[..., 0]  # Access the second element in the last dimension
-    qy = q[..., 1]  # Access the third element in the last dimension
-    qz = q[..., 2]  # Access the fourth element in the last dimension
-    qw = q[..., 3]  # Access the first element in the last dimension
+def quat_to_rot(quaternions):
+    """
+    Convert a batch of quaternions to rotation matrices.
+    
+    Parameters:
+    quaternions (torch.Tensor): A batch of quaternions with shape [N_ENVS, N_JOINT_QUAT, 4].
+    
+    Returns:
+    torch.Tensor: A batch of rotation matrices with shape [N_ENVS, N_JOINT_QUAT, 3, 3].
+    """
+    # Normalize the quaternions to ensure they are unit quaternions
+    q = quaternions / torch.norm(quaternions, dim=-1, keepdim=True)
 
-    xx = qx * qx
-    yy = qy * qy
-    zz = qz * qz
-    xy = qx * qy
-    xz = qx * qz
-    yz = qy * qz
-    wx = qw * qx
-    wy = qw * qy
-    wz = qw * qz
+    # Extract the quaternion components
+    qx, qy, qz, qw = q[..., 0], q[..., 1], q[..., 2], q[..., 3]
 
-    # Use torch operations to ensure compatibility
+    # Pre-compute reused expressions
+    xx, yy, zz = qx * qx, qy * qy, qz * qz
+    xy, xz, yz = qx * qy, qx * qz, qy * qz
+    wx, wy, wz = qw * qx, qw * qy, qw * qz
+
+    # Compute the rotation matrix components
     row1 = torch.stack([1 - 2 * (yy + zz), 2 * (xy - wz), 2 * (xz + wy)], dim=-1)
     row2 = torch.stack([2 * (xy + wz), 1 - 2 * (xx + zz), 2 * (yz - wx)], dim=-1)
     row3 = torch.stack([2 * (xz - wy), 2 * (yz + wx), 1 - 2 * (xx + yy)], dim=-1)
 
-    # Stack the rows to form the rotation matrix
-    rotation_matrix = torch.stack([row1, row2, row3], dim=-2)  # dim=-2 to stack as rows
+    # Combine the rows to form the rotation matrices
+    rotation_matrices = torch.stack([row1, row2, row3], dim=-2)
 
-    return rotation_matrix
+    return rotation_matrices
+import torch
+
+@torch.jit.script
+def matmul_rot_matrix_vector(rot_matrices: torch.Tensor, vec: torch.Tensor) -> torch.Tensor:
+    """
+    Multiply a batch of rotation matrices by a vector using broadcasting, optimized with TorchScript.
+    
+    Parameters:
+    rot_matrices (torch.Tensor): A tensor of rotation matrices with shape [N_ENV, N_JOINT_QUAT, 3, 3].
+    vec (torch.Tensor): A vector with shape [3].
+    
+    Returns:
+    torch.Tensor: The result of the multiplication with shape [N_ENV, N_JOINT_QUAT, 3].
+    """
+    # Reshape the vector for broadcasting: [1, 1, 3]
+    vec_reshaped = vec.unsqueeze(0).unsqueeze(0)
+
+    # Perform the multiplication using broadcasting
+    result = torch.matmul(rot_matrices, vec_reshaped)
+
+    # Squeeze the last dimension to get rid of the extra '1' dimension
+    result_squeezed = result.squeeze(-1)
+
+    return result_squeezed
+
+# Now, the function `multiply_rot_matrices_by_vector_jit` is a TorchScript function
+# and can be used in the same way as the previous example.
