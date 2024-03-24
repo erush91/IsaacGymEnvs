@@ -156,10 +156,13 @@ class AnymalTerrain(VecTask):
         actor_root_state = self.gym.acquire_actor_root_state_tensor(self.sim)
         dof_state_tensor = self.gym.acquire_dof_state_tensor(self.sim)
         net_contact_forces = self.gym.acquire_net_contact_force_tensor(self.sim)
+        rigid_body_state = self.gym.acquire_rigid_body_state_tensor(self.sim)
 
         self.gym.refresh_dof_state_tensor(self.sim)
         self.gym.refresh_actor_root_state_tensor(self.sim)
         self.gym.refresh_net_contact_force_tensor(self.sim)
+        self.gym.refresh_rigid_body_state_tensor(self.sim)
+
 
         # create some wrapper tensors for different slices
         self.root_states = gymtorch.wrap_tensor(actor_root_state)
@@ -167,6 +170,9 @@ class AnymalTerrain(VecTask):
         self.dof_pos = self.dof_state.view(self.num_envs, self.num_dof, 2)[..., 0]
         self.dof_vel = self.dof_state.view(self.num_envs, self.num_dof, 2)[..., 1]
         self.contact_forces = gymtorch.wrap_tensor(net_contact_forces).view(self.num_envs, -1, 3) # shape: num_envs, num_bodies, xyz axis
+        # self.rigid_body_state = gymtorch.wrap_tensor(rigid_body_state) # shape: num_envs, num_bodies, xyz axis
+        # self.rigid_body_pos = self.rigid_body_state[...,:3] # world frame, but positions at joint
+        # self.rigid_body_quat = self.rigid_body_state[...,3:7]
 
         # initialize some data used later on
         self.common_step_counter = 0
@@ -397,6 +403,9 @@ class AnymalTerrain(VecTask):
                                     ), dim=-1)
 
     def compute_reward(self):
+
+        # self.foot_locations = torch.matmul(quat_to_rot(self.rigid_body_quat[:, self.feet_indices]), torch.tensor([[0],[0],[0.35]], device=self.device)) + self.rigid_body_pos[:, self.feet_indices]
+
         # velocity tracking reward
         lin_vel_error = torch.sum(torch.square(self.commands[:, :2] - self.base_lin_vel[:, :2]), dim=1)
         ang_vel_error = torch.square(self.commands[:, 2] - self.base_ang_vel[:, 2])
@@ -468,6 +477,7 @@ class AnymalTerrain(VecTask):
 
     def compute_info(self):
         self.extras['foot_forces'] = self.contact_forces[:, self.feet_indices, 2]
+        # self.extras['foot_location'] = 
         self.extras['perturb_begin'] = self.apply_prescribed_perturb_start_now
         self.extras['perturb'] = self.apply_prescribed_perturb_now
         self.extras['stance_begin'] = self.new_stance
@@ -849,3 +859,32 @@ def wrap_to_pi(angles):
     angles %= 2*np.pi
     angles -= 2*np.pi * (angles > np.pi)
     return angles
+
+@torch.jit.script
+def quat_to_rot(quaternion):
+    """Convert a quaternion to a rotation matrix."""
+    q = quaternion / torch.norm(quaternion)
+    qx = q[..., 0]  # Access the second element in the last dimension
+    qy = q[..., 1]  # Access the third element in the last dimension
+    qz = q[..., 2]  # Access the fourth element in the last dimension
+    qw = q[..., 3]  # Access the first element in the last dimension
+
+    xx = qx * qx
+    yy = qy * qy
+    zz = qz * qz
+    xy = qx * qy
+    xz = qx * qz
+    yz = qy * qz
+    wx = qw * qx
+    wy = qw * qy
+    wz = qw * qz
+
+    # Use torch operations to ensure compatibility
+    row1 = torch.stack([1 - 2 * (yy + zz), 2 * (xy - wz), 2 * (xz + wy)], dim=-1)
+    row2 = torch.stack([2 * (xy + wz), 1 - 2 * (xx + zz), 2 * (yz - wx)], dim=-1)
+    row3 = torch.stack([2 * (xz - wy), 2 * (yz + wx), 1 - 2 * (xx + yy)], dim=-1)
+
+    # Stack the rows to form the rotation matrix
+    rotation_matrix = torch.stack([row1, row2, row3], dim=-2)  # dim=-2 to stack as rows
+
+    return rotation_matrix
