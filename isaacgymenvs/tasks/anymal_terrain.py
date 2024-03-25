@@ -483,6 +483,7 @@ class AnymalTerrain(VecTask):
         self.extras['com_location_x'] = self.com_location[:, :, 0]
         self.extras['com_location_y'] = self.com_location[:, :, 1]
         self.extras['com_location_z'] = self.com_location[:, :, 2]
+        self.extras['com_heading'] = self.heading
         self.extras['perturb_begin'] = self.apply_prescribed_perturb_start_now
         self.extras['perturb'] = self.apply_prescribed_perturb_now
         self.extras['stance_begin'] = self.new_stance
@@ -645,9 +646,9 @@ class AnymalTerrain(VecTask):
         self.base_ang_vel = quat_rotate_inverse(self.base_quat, self.root_states[:, 10:13])
         self.projected_gravity = quat_rotate_inverse(self.base_quat, self.gravity_vec)
         forward = quat_apply(self.base_quat, self.forward_vec)
-        heading = torch.atan2(forward[:, 1], forward[:, 0])
+        self.heading = torch.atan2(forward[:, 1], forward[:, 0])
         if not self.neuro_rl_experiment:
-            self.commands[:, 2] = torch.clip(0.5*wrap_to_pi(self.commands[:, 3] - heading), -1., 1.)
+            self.commands[:, 2] = torch.clip(0.5*wrap_to_pi(self.commands[:, 3] - self.heading), -1., 1.)
 
         # compute observations, rewards, resets, ...
         self.check_termination()
