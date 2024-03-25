@@ -631,6 +631,7 @@ class AnymalTerrain(VecTask):
         # self.gym.refresh_dof_state_tensor(self.sim) # done in step
         self.gym.refresh_actor_root_state_tensor(self.sim)
         self.gym.refresh_net_contact_force_tensor(self.sim)
+        self.gym.refresh_rigid_body_state_tensor(self.sim)
 
         self.progress_buf += 1
         self.randomize_buf += 1
@@ -666,7 +667,6 @@ class AnymalTerrain(VecTask):
         if self.viewer and self.enable_viewer_sync and self.debug_viz:
             # draw height lines
             self.gym.clear_lines(self.viewer)
-            self.gym.refresh_rigid_body_state_tensor(self.sim)
             sphere_geom = gymutil.WireframeSphereGeometry(0.02, 4, 4, None, color=(1, 1, 0))
             for i in range(self.num_envs):
                 base_pos = (self.root_states[i, :3]).cpu().numpy()
