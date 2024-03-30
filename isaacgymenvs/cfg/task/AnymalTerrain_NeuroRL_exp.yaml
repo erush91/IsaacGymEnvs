@@ -168,7 +168,7 @@ env:
 
   ablate:
     wait_until_disturbance: false
-    scl_pca_path: "u_0.4_1.0_14_v_0._0._1_r_0._0._1_n_20"
+    scl_pca_path: "../../neuro-rl/neuro_rl/data/processed/ANYMAL-1.0MASS-LSTM16-FRONTIERSDISTTERR/u_0.4_1_28_v_0_0_1_r_0_0_1_n_15"
     random_trial: false
     random:
       obs_in: 0
