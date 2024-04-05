@@ -80,7 +80,7 @@ env:
     RH_KFE: 0.8     # [rad]
 
   urdfAsset:
-    file: "urdf/anymal_c/urdf/anymal_minimal_0pt5MASS.urdf"
+    file: "urdf/anymal_c/urdf/anymal_minimal.urdf"
     mass: 26.58213 # [kg]
     footName: SHANK # SHANK if collapsing fixed joint, FOOT otherwise
     kneeName: THIGH

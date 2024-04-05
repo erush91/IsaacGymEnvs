@@ -168,7 +168,9 @@ env:
 
   ablate:
     wait_until_disturbance: false
-    scl_pca_path: "../../neuro-rl/neuro_rl/data/processed/ANYMAL-1.0MASS-LSTM16-FRONTIERSDISTTERR/u_0.4_1_28_v_0_0_1_r_0_0_1_n_15"
+    # scl_pca_path: "../../neuro-rl/neuro_rl/data/processed/ANYMAL-1.0MASS-LSTM16-FRONTIERSDISTTERR/u_1_1_1_v_0_0_1_r_0_0_1_n_10/last_AnymalTerrain_ep_3200_rew_20.145746.pth"
+    scl_pca_path: "../../neuro-rl/neuro_rl/data/processed/ANYMAL-0.5MASS-LSTM16-TERR-01/u_1_1_1_v_0_0_1_r_0_0_1_n_10/last_AnymalTerrain_ep_3200_rew_21.073418.pth"
+    
     random_trial: false
     random:
       obs_in: 0

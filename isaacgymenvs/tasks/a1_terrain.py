@@ -156,10 +156,12 @@ class A1Terrain(VecTask):
         actor_root_state = self.gym.acquire_actor_root_state_tensor(self.sim)
         dof_state_tensor = self.gym.acquire_dof_state_tensor(self.sim)
         net_contact_forces = self.gym.acquire_net_contact_force_tensor(self.sim)
+        rigid_body_state = self.gym.acquire_rigid_body_state_tensor(self.sim)
 
         self.gym.refresh_dof_state_tensor(self.sim)
         self.gym.refresh_actor_root_state_tensor(self.sim)
         self.gym.refresh_net_contact_force_tensor(self.sim)
+        self.gym.refresh_rigid_body_state_tensor(self.sim)
 
         # create some wrapper tensors for different slices
         self.root_states = gymtorch.wrap_tensor(actor_root_state)
@@ -167,6 +169,7 @@ class A1Terrain(VecTask):
         self.dof_pos = self.dof_state.view(self.num_envs, self.num_dof, 2)[..., 0]
         self.dof_vel = self.dof_state.view(self.num_envs, self.num_dof, 2)[..., 1]
         self.contact_forces = gymtorch.wrap_tensor(net_contact_forces).view(self.num_envs, -1, 3) # shape: num_envs, num_bodies, xyz axis
+        self.rigid_body_state = gymtorch.wrap_tensor(rigid_body_state).view(self.num_envs, -1, 13) # shape: num_envs, num_bodies, xyz axis
 
         # initialize some data used later on
         self.common_step_counter = 0
@@ -454,14 +457,24 @@ class A1Terrain(VecTask):
         self.episode_sums["hip"] += rew_hip
         self.episode_sums["total"] += self.rew_buf
 
-        
+        self.rigid_body_pos = self.rigid_body_state[..., :3] # world frame, but positions at joint
+        self.rigid_body_quat = self.rigid_body_state[..., 3:7]
+        self.com_location = self.rigid_body_pos[:, 0, :].unsqueeze(1)
+        self.foot_location = matmul_rot_matrix_vector(quat_to_rot(self.rigid_body_quat[:, self.feet_indices, :]), torch.tensor([[0],[0],[-0.2]], device=self.device)) + self.rigid_body_pos[:, self.feet_indices, :] # GENE TO DO FIX
+
+
+    def compute_info(self):
         self.extras['foot_forces'] = self.contact_forces[:, self.feet_indices, 2]
+        self.extras['foot_location_x'] = self.foot_location[:, :, 0]
+        self.extras['foot_location_y'] = self.foot_location[:, :, 1]
+        self.extras['foot_location_z'] = self.foot_location[:, :, 2]
+        self.extras['com_location_x'] = self.com_location[:, :, 0]
+        self.extras['com_location_y'] = self.com_location[:, :, 1]
+        self.extras['com_location_z'] = self.com_location[:, :, 2]
+        self.extras['com_yaw'] = self.heading
         self.extras['perturb_begin'] = self.apply_prescribed_perturb_start_now
         self.extras['perturb'] = self.apply_prescribed_perturb_now
         self.extras['stance_begin'] = self.new_stance
-
-    def compute_info(self):
-        self.extras['info'] = self.contact_forces[:, self.feet_indices, 2]
 
     def reset_idx(self, env_ids):
         positions_offset = torch_rand_float(0.5, 1.5, (len(env_ids), self.num_dof), device=self.device)
@@ -540,7 +553,8 @@ class A1Terrain(VecTask):
         # is RH foot touching groud (varies by agent)?
         RH_foot_contact = self.contact_forces[:, self.feet_indices[3], 2] > 0
 
-        self.stance = LF_foot_contact * RH_foot_contact
+        self.stance = RH_foot_contact
+        # self.stance = LF_foot_contact * RH_foot_contact
 
         self.new_stance = ~self.stance_last * self.stance
         self.gait_idx[self.new_stance] = 0
@@ -603,6 +617,7 @@ class A1Terrain(VecTask):
         # self.gym.refresh_dof_state_tensor(self.sim) # done in step
         self.gym.refresh_actor_root_state_tensor(self.sim)
         self.gym.refresh_net_contact_force_tensor(self.sim)
+        self.gym.refresh_rigid_body_state_tensor(self.sim)
 
         self.progress_buf += 1
         self.randomize_buf += 1
@@ -616,9 +631,9 @@ class A1Terrain(VecTask):
         self.base_ang_vel = quat_rotate_inverse(self.base_quat, self.root_states[:, 10:13])
         self.projected_gravity = quat_rotate_inverse(self.base_quat, self.gravity_vec)
         forward = quat_apply(self.base_quat, self.forward_vec)
-        heading = torch.atan2(forward[:, 1], forward[:, 0])
+        self.heading = torch.atan2(forward[:, 1], forward[:, 0])
         if not self.neuro_rl_experiment:
-            self.commands[:, 2] = torch.clip(0.5*wrap_to_pi(self.commands[:, 3] - heading), -1., 1.)
+            self.commands[:, 2] = torch.clip(0.5*wrap_to_pi(self.commands[:, 3] - self.heading), -1., 1.)
 
         # compute observations, rewards, resets, ...
         self.check_termination()
@@ -836,3 +851,61 @@ def wrap_to_pi(angles):
     angles %= 2*np.pi
     angles -= 2*np.pi * (angles > np.pi)
     return angles
+
+@torch.jit.script
+def quat_to_rot(quaternions):
+    """
+    Convert a batch of quaternions to rotation matrices.
+    
+    Parameters:
+    quaternions (torch.Tensor): A batch of quaternions with shape [N_ENVS, N_JOINT_QUAT, 4].
+    
+    Returns:
+    torch.Tensor: A batch of rotation matrices with shape [N_ENVS, N_JOINT_QUAT, 3, 3].
+    """
+    # Normalize the quaternions to ensure they are unit quaternions
+    q = quaternions / torch.norm(quaternions, dim=-1, keepdim=True)
+
+    # Extract the quaternion components
+    qx, qy, qz, qw = q[..., 0], q[..., 1], q[..., 2], q[..., 3]
+
+    # Pre-compute reused expressions
+    xx, yy, zz = qx * qx, qy * qy, qz * qz
+    xy, xz, yz = qx * qy, qx * qz, qy * qz
+    wx, wy, wz = qw * qx, qw * qy, qw * qz
+
+    # Compute the rotation matrix components
+    row1 = torch.stack([1 - 2 * (yy + zz), 2 * (xy - wz), 2 * (xz + wy)], dim=-1)
+    row2 = torch.stack([2 * (xy + wz), 1 - 2 * (xx + zz), 2 * (yz - wx)], dim=-1)
+    row3 = torch.stack([2 * (xz - wy), 2 * (yz + wx), 1 - 2 * (xx + yy)], dim=-1)
+
+    # Combine the rows to form the rotation matrices
+    rotation_matrices = torch.stack([row1, row2, row3], dim=-2)
+
+    return rotation_matrices
+
+@torch.jit.script
+def matmul_rot_matrix_vector(rot_matrices: torch.Tensor, vec: torch.Tensor) -> torch.Tensor:
+    """
+    Multiply a batch of rotation matrices by a vector using broadcasting, optimized with TorchScript.
+    
+    Parameters:
+    rot_matrices (torch.Tensor): A tensor of rotation matrices with shape [N_ENV, N_JOINT_QUAT, 3, 3].
+    vec (torch.Tensor): A vector with shape [3].
+    
+    Returns:
+    torch.Tensor: The result of the multiplication with shape [N_ENV, N_JOINT_QUAT, 3].
+    """
+    # Reshape the vector for broadcasting: [1, 1, 3]
+    vec_reshaped = vec.unsqueeze(0).unsqueeze(0)
+
+    # Perform the multiplication using broadcasting
+    result = torch.matmul(rot_matrices, vec_reshaped)
+
+    # Squeeze the last dimension to get rid of the extra '1' dimension
+    result_squeezed = result.squeeze(-1)
+
+    return result_squeezed
+
+# Now, the function `multiply_rot_matrices_by_vector_jit` is a TorchScript function
+# and can be used in the same way as the previous example.

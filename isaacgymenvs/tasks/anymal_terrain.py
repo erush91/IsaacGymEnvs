@@ -483,7 +483,7 @@ class AnymalTerrain(VecTask):
         self.extras['com_location_x'] = self.com_location[:, :, 0]
         self.extras['com_location_y'] = self.com_location[:, :, 1]
         self.extras['com_location_z'] = self.com_location[:, :, 2]
-        self.extras['com_heading'] = self.heading
+        self.extras['com_yaw'] = self.heading
         self.extras['perturb_begin'] = self.apply_prescribed_perturb_start_now
         self.extras['perturb'] = self.apply_prescribed_perturb_now
         self.extras['stance_begin'] = self.new_stance
@@ -898,6 +898,7 @@ def quat_to_rot(quaternions):
     rotation_matrices = torch.stack([row1, row2, row3], dim=-2)
 
     return rotation_matrices
+
 import torch
 
 @torch.jit.script
